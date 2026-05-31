@@ -9,7 +9,6 @@ import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Heart,
   Hand, Timer, Sparkles, Loader2
 } from 'lucide-react';
-import { MOCK_PROFILES } from '@/lib/mockChats';
 
 // phase: connecting → active → rating → choice → done
 export default function VideoCall() {
@@ -22,13 +21,10 @@ export default function VideoCall() {
   const [timeLeft, setTimeLeft] = useState(180);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
-  const [rating, setRating] = useState(null); // emoji reaction
+  const [rating, setRating] = useState(null);
   const [choice, setChoice] = useState(null);
   const localVideoRef = useRef(null);
   const [otherProfile, setOtherProfile] = useState(null);
-
-  // Support both mock and real matchIds
-  const isMock = matchId?.startsWith('mock-');
 
   const { data: match } = useQuery({
     queryKey: ['match', matchId],
@@ -36,22 +32,16 @@ export default function VideoCall() {
       const ms = await base44.entities.Match.filter({ id: matchId });
       return ms[0] || null;
     },
-    enabled: !!matchId && !isMock,
+    enabled: !!matchId,
   });
 
-  // Load profile — mock or real
   useEffect(() => {
-    if (isMock) {
-      const p = MOCK_PROFILES.find(p => p.id === matchId);
-      if (p) setOtherProfile(p);
-      return;
-    }
     if (!match || !myProfile) return;
     const otherId = match.profile_a_id === myProfile.id ? match.profile_b_id : match.profile_a_id;
-    base44.entities.Profile.filter({ id: otherId }).then(ps => {
+    base44.entities.Profile.filter({ id: otherId }).then((ps) => {
       if (ps[0]) setOtherProfile(ps[0]);
     });
-  }, [match, myProfile, isMock, matchId]);
+  }, [match, myProfile]);
 
   // Camera + connecting phase
   useEffect(() => {
@@ -100,7 +90,7 @@ export default function VideoCall() {
   const handleChoice = async (result) => {
     setChoice(result);
 
-    if (!isMock && match && myProfile) {
+    if (match && myProfile) {
       const isA = match.profile_a_id === myProfile.id;
       await base44.entities.Match.update(match.id, {
         [isA ? 'video_result_a' : 'video_result_b']: result,
@@ -111,9 +101,9 @@ export default function VideoCall() {
 
     setTimeout(() => {
       if (result === 'continue') {
-        navigate(isMock ? `/mock-chat/${matchId}` : `/chat/${matchId}`);
+        navigate(`/chat/${matchId}`);
       } else {
-        navigate('/chats');
+        navigate('/matches');
       }
     }, 1800);
   };

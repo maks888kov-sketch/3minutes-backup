@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';
+import { isProfileOnline } from '@/lib/profileUtils';
 
 const INTEREST_ICONS = {
   'Музыка': '🎵', 'Игры': '🎮', 'Спорт': '🏋️', 'Путешествия': '✈️',
@@ -31,6 +32,7 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
   const photos = profile.photos?.length > 0 ? profile.photos : [
     `https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop`
   ];
+  const online = isProfileOnline(profile);
 
   const likeGlow = useTransform(x, [0, 120], ['0px 0px 0px rgba(34,197,94,0)', '0px 0px 50px rgba(34,197,94,0.5)']);
   const nopeGlow = useTransform(x, [-120, 0], ['0px 0px 50px rgba(239,68,68,0.5)', '0px 0px 0px rgba(239,68,68,0)']);
@@ -96,7 +98,7 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
         {/* Online indicator */}
-        {profile.is_online && (
+        {online && (
           <div className="absolute top-6 right-6 flex items-center gap-1.5 glass rounded-full px-3 py-1.5">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs text-white/90 font-medium">Online</span>

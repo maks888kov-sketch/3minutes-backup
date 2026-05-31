@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 
-const hiddenNavRoutes = ['/onboarding', '/profile-setup', '/chat/', '/video-call'];
+const hiddenNavRoutes = ['/onboarding', '/profile-setup', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/chat/', '/video-call'];
 
 export default function Layout() {
   const location = useLocation();

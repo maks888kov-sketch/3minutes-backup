@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
-import { useCurrentProfile, useMatches, useLikedMe } from '@/lib/useProfile';
+import { useCurrentProfile, useMatches, useLikedMe, useLikedMeProfiles } from '@/lib/useProfile';
+import { isProfileOnline } from '@/lib/profileUtils';
 import { Heart, MessageCircle, Crown, Loader2, Sparkles, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,6 +12,7 @@ export default function Matches() {
   const { data: profile } = useCurrentProfile();
   const { data: matches = [], isLoading } = useMatches(profile?.id);
   const { data: likedMe = [] } = useLikedMe(profile?.id);
+  const { data: likedProfiles = [] } = useLikedMeProfiles(profile?.id);
   const [matchProfiles, setMatchProfiles] = useState({});
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function Matches() {
         <p className="text-sm text-muted-foreground mt-0.5">Взаимные симпатии</p>
       </div>
 
-      {/* Liked me — premium teaser */}
+      {/* Liked me teaser */}
       {likedMe.length > 0 && (
         <div className="px-5 mb-5">
           <motion.button
@@ -53,14 +55,31 @@ export default function Matches() {
             onClick={() => navigate('/premium')}
             className="w-full glass-strong rounded-2xl p-4 flex items-center gap-4 neon-glow"
           >
-            <div className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-              <Heart className="w-7 h-7 text-white" fill="white" />
+            <div className="flex -space-x-3 flex-shrink-0">
+              {likedProfiles.slice(0, 3).map((p) => (
+                <div key={p.id} className="w-12 h-12 rounded-full overflow-hidden border-2 border-background">
+                  <img
+                    src={p.photos?.[0] || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop'}
+                    alt={p.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+              {likedProfiles.length === 0 && (
+                <div className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center">
+                  <Heart className="w-7 h-7 text-white" fill="white" />
+                </div>
+              )}
             </div>
             <div className="text-left flex-1">
               <div className="font-bold text-lg">
                 {likedMe.length} {likedMe.length === 1 ? 'человек лайкнул' : 'человека лайкнули'} тебя
               </div>
-              <div className="text-sm text-muted-foreground">Открой Premium, чтобы узнать кто</div>
+              <div className="text-sm text-muted-foreground">
+                {likedProfiles.length > 0
+                  ? `${likedProfiles.slice(0, 2).map((p) => p.name).join(', ')}${likedProfiles.length > 2 ? ' и другие' : ''}`
+                  : 'Посмотреть в Premium'}
+              </div>
             </div>
             <Crown className="w-5 h-5 text-yellow-400 flex-shrink-0" />
           </motion.button>
@@ -87,6 +106,7 @@ export default function Matches() {
             if (!other) return (
               <div key={match.id} className="h-24 glass rounded-2xl animate-pulse" />
             );
+            const online = isProfileOnline(other);
             return (
               <motion.div
                 key={match.id}
@@ -95,14 +115,14 @@ export default function Matches() {
                 className="glass rounded-2xl p-4 flex items-center gap-4"
               >
                 <div className="relative flex-shrink-0">
-                  <div className={`w-16 h-16 rounded-full overflow-hidden border-2 ${other.is_online ? 'border-green-500' : 'border-white/10'}`}>
+                  <div className={`w-16 h-16 rounded-full overflow-hidden border-2 ${online ? 'border-green-500' : 'border-white/10'}`}>
                     <img
                       src={other.photos?.[0] || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop'}
                       alt={other.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  {other.is_online && (
+                  {online && (
                     <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
                   )}
                   {other.is_premium && (
@@ -118,7 +138,7 @@ export default function Matches() {
                     {other.is_verified && <Star className="w-3.5 h-3.5 text-blue-400" fill="currentColor" />}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {other.is_online ? '🟢 Онлайн' : other.city || 'Не указан город'}
+                    {online ? '🟢 Онлайн' : other.city || 'Не указан город'}
                   </p>
                   {other.bio && (
                     <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">{other.bio}</p>

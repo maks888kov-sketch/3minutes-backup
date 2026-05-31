@@ -2,19 +2,18 @@ import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useCurrentProfile, useDiscoverProfiles } from '@/lib/useProfile';
+import { useCurrentProfile, useDiscoverProfiles, useOnlineCount } from '@/lib/useProfile';
+import { showNotification } from '@/components/AppNotifications';
 import SwipeCard from '@/components/SwipeCard';
 import MatchPopup from '@/components/MatchPopup';
 import DailyPicks from '@/components/DailyPicks';
 import DiscoverSkeleton from '@/components/DiscoverSkeleton';
-import { Heart, X, Star, Sparkles, Loader2, Flame, RefreshCw } from 'lucide-react';
-
-// Fake online count for vibe
-const ONLINE_COUNT = 24 + Math.floor(Math.random() * 10);
+import { Heart, X, Star, Sparkles, Flame, RefreshCw } from 'lucide-react';
 
 export default function Discover() {
   const { data: profile, isLoading: profileLoading } = useCurrentProfile();
   const { data: profiles = [], isLoading, refetch } = useDiscoverProfiles(profile);
+  const { data: onlineCount = 0 } = useOnlineCount();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchPopup, setMatchPopup] = useState(null);
   const [showDailyPicks, setShowDailyPicks] = useState(false);
@@ -36,17 +35,27 @@ export default function Discover() {
     if (diff > 80 && currentIndex === 0) handleRefresh();
   };
 
-  const handleSwipe = useCallback(async (direction) => {
+  const handleSwipe = useCallback(async (direction, options = {}) => {
     const targetProfile = profiles[currentIndex];
     if (!targetProfile || !profile) return;
 
-    const isLike = direction === 'right';
+    const isLike = direction === 'right' || direction === 'super';
+    const isSuperLike = direction === 'super' || options.superLike;
 
     await base44.entities.Like.create({
       from_profile_id: profile.id,
       to_profile_id: targetProfile.id,
       is_like: isLike,
+      is_super_like: !!isSuperLike,
     });
+
+    if (isSuperLike) {
+      showNotification({
+        type: 'match',
+        title: 'Суперлайк отправлен ⭐',
+        body: `${targetProfile.name} увидит, что вы заинтересованы`,
+      });
+    }
 
     if (isLike) {
       const reverseL = await base44.entities.Like.filter({
@@ -63,10 +72,11 @@ export default function Discover() {
         });
         setMatchPopup({ match, otherProfile: targetProfile });
         queryClient.invalidateQueries({ queryKey: ['matches'] });
+        queryClient.invalidateQueries({ queryKey: ['chatList'] });
       }
     }
 
-    setCurrentIndex(prev => prev + 1);
+    setCurrentIndex((prev) => prev + 1);
   }, [profiles, currentIndex, profile, queryClient]);
 
   if (profileLoading || isLoading) {
@@ -126,7 +136,7 @@ export default function Discover() {
           {/* Online count */}
           <div className="flex items-center gap-1.5 glass rounded-xl px-3 py-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium text-green-400">{ONLINE_COUNT}</span>
+            <span className="text-xs font-medium text-green-400">{onlineCount} онлайн</span>
           </div>
           <button
             onClick={() => setShowDailyPicks(true)}
@@ -209,9 +219,10 @@ export default function Discover() {
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.88 }}
+            onClick={() => handleSwipe('super')}
             className="w-16 h-16 rounded-full glass flex items-center justify-center"
           >
-            <Star className="w-7 h-7 text-yellow-400" />
+            <Star className="w-7 h-7 text-yellow-400" fill="currentColor" />
           </motion.button>
         </div>
       )}

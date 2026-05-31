@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { showNotification } from '@/components/AppNotifications';
 import { useCurrentProfile, useMessages } from '@/lib/useProfile';
+import { isProfileOnline } from '@/lib/profileUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,25 +22,9 @@ export default function Chat() {
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
   const [otherProfile, setOtherProfile] = useState(null);
-  const typingTimerRef = useRef(null);
-
-  // Simulate partner typing occasionally
-  useEffect(() => {
-    if (!otherProfile) return;
-    const scheduleTyping = () => {
-      const delay = 8000 + Math.random() * 15000;
-      typingTimerRef.current = setTimeout(() => {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 2000 + Math.random() * 2000);
-        scheduleTyping();
-      }, delay);
-    };
-    scheduleTyping();
-    return () => clearTimeout(typingTimerRef.current);
-  }, [otherProfile]);
+  const unreadClearedRef = useRef(false);
 
   const { data: match } = useQuery({
     queryKey: ['match', matchId],
@@ -48,15 +33,32 @@ export default function Chat() {
       return matches[0] || null;
     },
     enabled: !!matchId,
+    refetchInterval: 3000,
   });
 
   useEffect(() => {
     if (!match || !myProfile) return;
     const otherId = match.profile_a_id === myProfile.id ? match.profile_b_id : match.profile_a_id;
-    base44.entities.Profile.filter({ id: otherId }).then(ps => {
+    base44.entities.Profile.filter({ id: otherId }).then((ps) => {
       if (ps[0]) setOtherProfile(ps[0]);
     });
   }, [match, myProfile]);
+
+  useEffect(() => {
+    if (!match || !myProfile || unreadClearedRef.current) return;
+    const isA = match.profile_a_id === myProfile.id;
+    const myUnread = isA ? match.unread_count_a : match.unread_count_b;
+    if (!myUnread) return;
+
+    unreadClearedRef.current = true;
+    base44.entities.Match.update(match.id, {
+      [isA ? 'unread_count_a' : 'unread_count_b']: 0,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['chatList'] });
+    });
+  }, [match, myProfile, matchId, queryClient]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,13 +76,17 @@ export default function Chat() {
       content: msg,
     });
     if (match) {
+      const isA = match.profile_a_id === myProfile.id;
+      const otherUnread = isA ? match.unread_count_b || 0 : match.unread_count_a || 0;
       await base44.entities.Match.update(match.id, {
         last_message_text: msg,
         last_message_time: new Date().toISOString(),
+        [isA ? 'unread_count_b' : 'unread_count_a']: otherUnread + 1,
       });
     }
     queryClient.invalidateQueries({ queryKey: ['messages', matchId] });
     queryClient.invalidateQueries({ queryKey: ['matches'] });
+    queryClient.invalidateQueries({ queryKey: ['chatList'] });
     setSending(false);
   };
 
@@ -95,12 +101,16 @@ export default function Chat() {
       content: file_url,
     });
     if (match) {
+      const isA = match.profile_a_id === myProfile.id;
+      const otherUnread = isA ? match.unread_count_b || 0 : match.unread_count_a || 0;
       await base44.entities.Match.update(match.id, {
         last_message_text: '📷 Фото',
         last_message_time: new Date().toISOString(),
+        [isA ? 'unread_count_b' : 'unread_count_a']: otherUnread + 1,
       });
     }
     queryClient.invalidateQueries({ queryKey: ['messages', matchId] });
+    queryClient.invalidateQueries({ queryKey: ['chatList'] });
   };
 
   const handleVideoRequest = async () => {
@@ -139,13 +149,14 @@ export default function Chat() {
     match.profile_a_id === myProfile.id ? match.video_consent_b : match.video_consent_a
   );
 
+  const otherOnline = isProfileOnline(otherProfile);
   const otherPhoto = otherProfile?.photos?.[0] || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop';
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
       {/* Header */}
       <div className="glass-strong border-b border-white/5 px-3 py-3 safe-top flex items-center gap-3 z-10">
-        <button onClick={() => navigate('/matches')} className="p-1.5">
+        <button onClick={() => navigate('/chats')} className="p-1.5">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
@@ -154,9 +165,9 @@ export default function Chat() {
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold truncate">{otherProfile?.name || '...'}</h2>
           <div className="flex items-center gap-1">
-            {otherProfile?.is_online && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            {otherOnline && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
             <span className="text-xs text-muted-foreground">
-              {otherProfile?.is_online ? 'онлайн' : 'был(а) недавно'}
+              {otherOnline ? 'онлайн' : 'был(а) недавно'}
             </span>
           </div>
         </div>
@@ -276,34 +287,11 @@ export default function Chat() {
             );
           })
         )}
-        {/* Typing indicator */}
-        <AnimatePresence>
-          {isTyping && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="flex justify-start mb-2"
-            >
-              <div className="glass rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
-                {[0, 1, 2].map(i => (
-                  <motion.div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                  />
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
         <div ref={scrollRef} />
       </div>
 
       {/* Input area */}
       <div className="glass-strong border-t border-white/5 px-3 pt-2 pb-3 safe-bottom">
-        {/* Video request button — only if no consent yet */}
         {!myConsent && !videoUnlocked && (
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -347,7 +335,14 @@ export default function Chat() {
               <Send className="w-5 h-5 text-white" />
             </button>
           ) : (
-            <button className="p-2.5 rounded-xl glass flex-shrink-0">
+            <button
+              onClick={() => showNotification({
+                type: 'info',
+                title: 'Голосовые сообщения',
+                body: 'Скоро появятся в обновлении',
+              })}
+              className="p-2.5 rounded-xl glass flex-shrink-0"
+            >
               <Mic className="w-5 h-5 text-muted-foreground" />
             </button>
           )}

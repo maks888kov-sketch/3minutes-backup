@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useCurrentProfile, useUpdateProfile } from '@/lib/useProfile';
+import { getAuthErrorMessage, isAppUnavailableError } from '@/lib/authRedirect';
+import { getUploadErrorMessage, uploadPublicFile } from '@/lib/uploadFile';
+import { PROFILE_GOALS } from '@/lib/profileUtils';
+import { showNotification } from '@/components/AppNotifications';
+import AppPublishRequired from '@/components/AppPublishRequired';
 import {
   Camera, MapPin, Settings2, Crown,
   LogOut, ChevronRight, Pencil, Shield, Bell, Eye, Loader2, Lightbulb, Star
@@ -11,13 +16,6 @@ import EditProfileSheet from '@/components/profile/EditProfileSheet';
 import AgeRangeSlider from '@/components/profile/AgeRangeSlider';
 
 const CITIES = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Все города'];
-
-const STATUSES = [
-  { id: 'chat', emoji: '💬', label: 'Хочу общения' },
-  { id: 'love', emoji: '❤️', label: 'Ищу отношения' },
-  { id: 'date', emoji: '🍷', label: 'Готов к свиданию' },
-  { id: 'fun', emoji: '🎮', label: 'Просто пообщаться' },
-];
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -29,36 +27,93 @@ export default function Settings() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [ageRange, setAgeRange] = useState([18, 45]);
   const [cityFilter, setCityFilter] = useState('');
-  const [userStatus, setUserStatus] = useState('chat');
+  const [userGoal, setUserGoal] = useState('relationship');
+  const [photoError, setPhotoError] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [needsPublish, setNeedsPublish] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (profile) {
       setAgeRange([profile.min_age_filter || 18, profile.max_age_filter || 45]);
       setCityFilter(profile.city_filter || '');
+      setUserGoal(profile.goal || 'relationship');
     }
   }, [profile]);
 
+  const handleGoalChange = (goal) => {
+    setUserGoal(goal);
+    if (profile) {
+      updateProfile.mutate({ id: profile.id, data: { goal } });
+    }
+  };
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file || !profile) return;
-    // Show instant preview
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Выберите изображение (JPG, PNG и т.д.)');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError('Файл слишком большой. Максимум 10 МБ');
+      return;
+    }
+
+    setPhotoError('');
     const reader = new FileReader();
-    reader.onload = ev => setPhotoPreview(ev.target.result);
+    reader.onload = (ev) => setPhotoPreview(ev.target.result);
     reader.readAsDataURL(file);
     setPhotoUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await updateProfile.mutateAsync({
-      id: profile.id,
-      data: { photos: [file_url, ...(profile.photos || []).slice(1)] },
-    });
-    setPhotoUploading(false);
+
+    try {
+      const file_url = await uploadPublicFile(file);
+      await updateProfile.mutateAsync({
+        id: profile?.id,
+        data: {
+          photos: [file_url, ...(profile?.photos || []).slice(1)],
+          name: profile?.name?.trim() || 'Пользователь',
+          profile_complete: profile?.profile_complete ?? true,
+        },
+      });
+      setPhotoPreview(null);
+    } catch (err) {
+      setPhotoPreview(null);
+      setPhotoError(getUploadErrorMessage(err));
+      setNeedsPublish(isAppUnavailableError(err));
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
   const handleSaveProfile = async (data) => {
-    if (!profile) return;
-    await updateProfile.mutateAsync({ id: profile.id, data });
-    setShowEdit(false);
+    setSaveError('');
+    setNeedsPublish(false);
+    if (!data.name?.trim()) {
+      setSaveError('Укажите имя');
+      throw new Error('Укажите имя');
+    }
+
+    try {
+      await updateProfile.mutateAsync({
+        id: profile?.id,
+        data: {
+          ...data,
+          name: data.name.trim(),
+          age: parseInt(data.age, 10) || profile?.age || 25,
+          profile_complete: true,
+        },
+      });
+      setShowEdit(false);
+    } catch (err) {
+      if (isAppUnavailableError(err)) {
+        setNeedsPublish(true);
+      }
+      setSaveError(getAuthErrorMessage(err));
+      throw err;
+    }
   };
 
   const handleAgeChange = (range) => {
@@ -107,6 +162,7 @@ export default function Settings() {
       </div>
 
       <div className="relative z-10 px-5 space-y-4">
+        {needsPublish && <AppPublishRequired />}
 
         {/* Profile card */}
         <div className="rounded-3xl p-6 text-center"
@@ -136,11 +192,14 @@ export default function Settings() {
               style={{ background: 'linear-gradient(135deg, hsl(270,80%,60%), hsl(330,85%,60%))', boxShadow: '0 0 12px rgba(168,85,247,0.5)' }}
             >
               <Camera className="w-4 h-4 text-white" />
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="sr-only" />
             </motion.label>
           </div>
 
           <p className="text-xs text-muted-foreground mb-3">Нажми на камеру, чтобы сменить фото</p>
+          {photoError && (
+            <p className="text-xs text-destructive mb-3 px-2">{photoError}</p>
+          )}
 
           <h2 className="text-xl font-bold">{profile?.name}{profile?.age ? `, ${profile.age}` : ''}</h2>
           <div className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
@@ -165,25 +224,26 @@ export default function Settings() {
         {/* My Status */}
         <div className="rounded-2xl p-5"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+          <h3 className="font-semibold mb-1 flex items-center gap-2 text-sm">
             <Star className="w-4 h-4 text-primary" />
-            Мой статус
+            Цель знакомства
           </h3>
+          <p className="text-xs text-muted-foreground mb-3">То же, что вы выбирали при регистрации</p>
           <div className="grid grid-cols-2 gap-2">
-            {STATUSES.map(s => (
+            {PROFILE_GOALS.map((g) => (
               <motion.button
-                key={s.id}
+                key={g.value}
                 whileTap={{ scale: 0.96 }}
-                onClick={() => setUserStatus(s.id)}
+                onClick={() => handleGoalChange(g.value)}
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all"
                 style={{
-                  background: userStatus === s.id ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)',
-                  border: userStatus === s.id ? '1.5px solid rgba(168,85,247,0.6)' : '1.5px solid rgba(255,255,255,0.06)',
-                  boxShadow: userStatus === s.id ? '0 0 12px rgba(168,85,247,0.25)' : 'none',
+                  background: userGoal === g.value ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)',
+                  border: userGoal === g.value ? '1.5px solid rgba(168,85,247,0.6)' : '1.5px solid rgba(255,255,255,0.06)',
+                  boxShadow: userGoal === g.value ? '0 0 12px rgba(168,85,247,0.25)' : 'none',
                 }}
               >
-                <span className="text-lg">{s.emoji}</span>
-                <span className="text-xs font-medium leading-tight">{s.label}</span>
+                <span className="text-lg">{g.emoji}</span>
+                <span className="text-xs font-medium leading-tight">{g.label}</span>
               </motion.button>
             ))}
           </div>
@@ -223,19 +283,32 @@ export default function Settings() {
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
           {[
             { icon: Crown, label: 'Premium', color: 'text-yellow-400', onClick: () => navigate('/premium') },
-            { icon: Shield, label: 'Верификация', color: 'text-blue-400' },
-            { icon: Bell, label: 'Уведомления', color: 'text-primary' },
-            { icon: Eye, label: 'Приватность', color: 'text-muted-foreground' },
+            { icon: Shield, label: 'Верификация', color: 'text-blue-400', soon: true },
+            { icon: Bell, label: 'Уведомления', color: 'text-primary', soon: true },
+            { icon: Eye, label: 'Приватность', color: 'text-muted-foreground', soon: true },
             { icon: Lightbulb, label: 'Предложить идею', color: 'text-yellow-400', onClick: () => navigate('/feedback') },
           ].map((item, i) => (
             <button
               key={i}
-              onClick={item.onClick}
+              onClick={() => {
+                if (item.soon) {
+                  showNotification({ type: 'info', title: item.label, body: 'Скоро появится в обновлении' });
+                  return;
+                }
+                item.onClick?.();
+              }}
               className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
             >
               <item.icon className={`w-5 h-5 ${item.color}`} />
               <span className="flex-1 text-left font-medium text-sm">{item.label}</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              {item.soon ? (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-primary"
+                  style={{ background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.3)' }}>
+                  Скоро
+                </span>
+              ) : (
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              )}
             </button>
           ))}
         </div>
@@ -256,8 +329,13 @@ export default function Settings() {
           <EditProfileSheet
             profile={profile}
             onSave={handleSaveProfile}
-            onClose={() => setShowEdit(false)}
+            onClose={() => {
+              setSaveError('');
+              setShowEdit(false);
+            }}
             isSaving={updateProfile.isPending}
+            saveError={saveError}
+            onClearError={() => setSaveError('')}
           />
         )}
       </AnimatePresence>

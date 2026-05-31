@@ -23,7 +23,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 		storage.setItem(storageKey, searchParam);
 		return searchParam;
 	}
-	if (defaultValue) {
+	if (defaultValue !== undefined && defaultValue !== null && defaultValue !== '') {
 		storage.setItem(storageKey, defaultValue);
 		return defaultValue;
 	}

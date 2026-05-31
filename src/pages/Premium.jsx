@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Eye, Zap, Star, Shield, RotateCcw, TrendingUp, EyeOff, Sparkles, X, CheckCircle2 } from 'lucide-react';
+import { Crown, Eye, Zap, Star, Shield, RotateCcw, TrendingUp, EyeOff, Sparkles, X, CheckCircle2, Heart, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useCurrentProfile, useLikedMeProfiles } from '@/lib/useProfile';
 const features = [
   { icon: Star, title: 'Безлимитные лайки', color: '#a78bfa' },
   { icon: Zap, title: 'Boost анкеты', color: '#fbbf24' },
@@ -43,6 +44,8 @@ function Toast({ onClose }) {
 export default function Premium() {
   const navigate = useNavigate();
   const [showToast, setShowToast] = useState(false);
+  const { data: profile } = useCurrentProfile();
+  const { data: likedProfiles = [], isLoading: likedLoading } = useLikedMeProfiles(profile?.id);
 
   const handleEarlyAccess = () => {
     setShowToast(true);
@@ -106,6 +109,47 @@ export default function Premium() {
             Мы готовим расширенные функции для самых активных пользователей
           </motion.p>
         </div>
+
+        {/* Who liked you */}
+        {likedLoading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : likedProfiles.length > 0 && (
+          <div className="px-5 mb-8">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 text-center">
+              Кто вас лайкнул
+            </p>
+            <div className="rounded-3xl p-5 space-y-3"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              {likedProfiles.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                    <img
+                      src={p.photos?.[0] || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop'}
+                      alt={p.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{p.name}, {p.age}</p>
+                    <p className="text-xs text-muted-foreground truncate">{p.city || 'Город не указан'}</p>
+                  </div>
+                  <Heart className="w-4 h-4 text-accent flex-shrink-0" fill="currentColor" />
+                </motion.div>
+              ))}
+              <p className="text-xs text-center text-muted-foreground pt-2">
+                Поставьте лайк в Discover — при взаимной симпатии появится чат
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Features grid */}
         <div className="px-5 mb-8">

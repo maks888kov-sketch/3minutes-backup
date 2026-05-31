@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { markOnboardingSeen } from '@/lib/authRedirect';
 import { Heart, MessageCircle, Video, ArrowRight, Sparkles } from 'lucide-react';
 
 const slides = [
@@ -29,11 +30,16 @@ export default function Onboarding() {
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
 
+  const goToRegister = () => {
+    markOnboardingSeen();
+    navigate('/register');
+  };
+
   const handleNext = () => {
     if (current < slides.length - 1) {
       setCurrent(current + 1);
     } else {
-      navigate('/profile-setup');
+      goToRegister();
     }
   };
 
@@ -106,7 +112,7 @@ export default function Onboarding() {
 
         {current === 0 && (
           <button
-            onClick={() => navigate('/profile-setup')}
+            onClick={goToRegister}
             className="block w-full text-center text-muted-foreground text-sm"
           >
             Пропустить
