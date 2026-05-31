@@ -25,6 +25,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     logLevel: 'error',
+    server: {
+      host: '127.0.0.1',
+      port: 5173,
+      strictPort: false,
+    },
     define: {
       'import.meta.env.VITE_BASE44_APP_ID': JSON.stringify(appId),
       'import.meta.env.VITE_BASE44_APP_BASE_URL': JSON.stringify(appBaseUrl),

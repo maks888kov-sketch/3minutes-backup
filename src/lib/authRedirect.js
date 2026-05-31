@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { pickBestProfile } from '@/lib/profileUtils';
 
 const REMEMBERED_EMAIL_KEY = '3minutes_remembered_email';
 const ONBOARDING_SEEN_KEY = '3minutes_onboarding_seen';
@@ -107,7 +108,7 @@ function getRawErrorMessage(error) {
 export async function getPostAuthPath() {
   const user = await base44.auth.me();
   const profiles = await base44.entities.Profile.filter({ created_by: user.email });
-  const profile = profiles[0];
+  const profile = pickBestProfile(profiles);
   if (!profile || !profile.profile_complete) {
     return '/profile-setup';
   }

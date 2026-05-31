@@ -3,32 +3,57 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useCurrentProfile } from '@/lib/useProfile';
+import {
+  isUnlimitedVideoCall,
+  INTRO_VIDEO_DURATION_SEC,
+} from '@/lib/chatMatchUtils';
+import { isTestBotMatchId } from '@/lib/testBots';
+import {
+  getTestBotMatch,
+  resolveTestBotOtherProfile,
+  completeTestBotVideoCall,
+} from '@/lib/testBotStore';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Heart,
-  Hand, Timer, Sparkles, Loader2
+  Hand, Timer, Sparkles, Loader2, X
 } from 'lucide-react';
 
-// phase: connecting → active → rating → choice → done
+// phase: lobby → connecting → active → rating → choice
+function formatCallDuration(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export default function VideoCall() {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const { data: myProfile } = useCurrentProfile();
   const queryClient = useQueryClient();
 
-  const [phase, setPhase] = useState('connecting');
-  const [timeLeft, setTimeLeft] = useState(180);
+  const [phase, setPhase] = useState('lobby');
+  const [timeLeft, setTimeLeft] = useState(INTRO_VIDEO_DURATION_SEC);
+  const [elapsed, setElapsed] = useState(0);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [rating, setRating] = useState(null);
   const [choice, setChoice] = useState(null);
   const localVideoRef = useRef(null);
+  const streamRef = useRef(null);
   const [otherProfile, setOtherProfile] = useState(null);
+
+  const isTestCall = isTestBotMatchId(matchId);
 
   const { data: match } = useQuery({
     queryKey: ['match', matchId],
     queryFn: async () => {
+      if (isTestBotMatchId(matchId)) return getTestBotMatch(matchId);
       const ms = await base44.entities.Match.filter({ id: matchId });
       return ms[0] || null;
     },
@@ -37,37 +62,68 @@ export default function VideoCall() {
 
   useEffect(() => {
     if (!match || !myProfile) return;
+    if (isTestBotMatchId(match.id)) {
+      setOtherProfile(resolveTestBotOtherProfile(match, myProfile.id));
+      return;
+    }
     const otherId = match.profile_a_id === myProfile.id ? match.profile_b_id : match.profile_a_id;
     base44.entities.Profile.filter({ id: otherId }).then((ps) => {
       if (ps[0]) setOtherProfile(ps[0]);
     });
   }, [match, myProfile]);
 
-  // Camera + connecting phase
+  const isUnlimitedCall = isUnlimitedVideoCall(match);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+  };
+
+  const handleCancel = () => {
+    stopCamera();
+    navigate(`/chat/${matchId}`);
+  };
+
+  const handleStartCall = () => {
+    setElapsed(0);
+    setTimeLeft(INTRO_VIDEO_DURATION_SEC);
+    setPhase('connecting');
+    window.setTimeout(() => setPhase('active'), 1200);
+  };
+
+  // Camera preview in lobby
   useEffect(() => {
+    let cancelled = false;
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      } catch (e) {
-        // Camera not available in preview
+      } catch {
+        // Camera optional for preview
       }
     };
     startCamera();
-    const timeout = setTimeout(() => setPhase('active'), 2000);
     return () => {
-      clearTimeout(timeout);
-      if (localVideoRef.current?.srcObject) {
-        localVideoRef.current.srcObject.getTracks().forEach(t => t.stop());
-      }
+      cancelled = true;
+      stopCamera();
     };
   }, []);
 
-  // Timer countdown
+  // Таймер первого знакомства (3 мин)
   useEffect(() => {
-    if (phase !== 'active') return;
+    if (phase !== 'active' || isUnlimitedCall) return;
     const interval = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
           setPhase('rating');
@@ -77,13 +133,33 @@ export default function VideoCall() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [phase]);
+  }, [phase, isUnlimitedCall]);
+
+  // Безлимитный звонок — считаем время на связи
+  useEffect(() => {
+    if (phase !== 'active' || !isUnlimitedCall) return;
+    const interval = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase, isUnlimitedCall]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
-  const progress = (180 - timeLeft) / 180;
+  const progress = (INTRO_VIDEO_DURATION_SEC - timeLeft) / INTRO_VIDEO_DURATION_SEC;
 
-  const handleEndCall = () => setPhase('rating');
+  const finishUnlimitedCall = () => {
+    stopCamera();
+    navigate(`/chat/${matchId}`);
+  };
+
+  const handleEndCall = () => {
+    if (isUnlimitedCall) {
+      finishUnlimitedCall();
+      return;
+    }
+    setPhase('rating');
+  };
 
   const handleRating = (r) => setRating(r);
 
@@ -91,12 +167,34 @@ export default function VideoCall() {
     setChoice(result);
 
     if (match && myProfile) {
-      const isA = match.profile_a_id === myProfile.id;
-      await base44.entities.Match.update(match.id, {
-        [isA ? 'video_result_a' : 'video_result_b']: result,
-        status: result === 'continue' ? 'active' : 'ended',
-      });
-      queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+      if (isTestCall) {
+        completeTestBotVideoCall(matchId, myProfile.id, result);
+        queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+        queryClient.invalidateQueries({ queryKey: ['messages', matchId] });
+      } else {
+        const isA = match.profile_a_id === myProfile.id;
+        const myField = isA ? 'video_result_a' : 'video_result_b';
+        const otherField = isA ? 'video_result_b' : 'video_result_a';
+        const otherResult = match[otherField];
+
+        await base44.entities.Match.update(match.id, {
+          [myField]: result,
+          status: result === 'end' ? 'ended' : match.status,
+        });
+
+        if (result === 'continue' && otherResult === 'continue') {
+          await base44.entities.Match.update(match.id, { status: 'video_unlocked' });
+          await base44.entities.Message.create({
+            match_id: matchId,
+            sender_profile_id: myProfile.id,
+            type: 'system',
+            content: '🎉 Вам понравилось общение! Фото, голосовые и безлимитные видеозвонки разблокированы',
+          });
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+        queryClient.invalidateQueries({ queryKey: ['messages', matchId] });
+      }
     }
 
     setTimeout(() => {
@@ -119,11 +217,58 @@ export default function VideoCall() {
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      {/* Cancel — lobby / connecting / active */}
+      {(phase === 'lobby' || phase === 'connecting' || phase === 'active') && (
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="absolute top-0 left-0 z-30 safe-top m-4 w-10 h-10 rounded-full glass flex items-center justify-center"
+          aria-label="Отменить и вернуться в чат"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+      )}
+
       {/* Remote video bg */}
       <div className="absolute inset-0">
         <img src={otherPhoto} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/30" />
       </div>
+
+      {/* LOBBY — ждём подтверждения */}
+      <AnimatePresence>
+        {phase === 'lobby' && (
+          <motion.div
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xl px-8"
+          >
+            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary neon-glow mb-5">
+              <img src={otherPhoto} alt="" className="w-full h-full object-cover" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-1">{otherProfile?.name || '...'}</h2>
+            <p className="text-sm text-muted-foreground text-center mb-8 max-w-xs">
+              {isUnlimitedCall
+                ? 'Свободный видеозвонок — общайтесь сколько угодно. Можно отменить и вернуться в чат.'
+                : 'Готов к 3-минутной видео-встрече? Можно отменить — вернёшься в чат.'}
+            </p>
+            <Button
+              onClick={handleStartCall}
+              className="w-full max-w-xs h-14 text-base font-semibold gradient-primary rounded-2xl border-0 neon-glow mb-3"
+            >
+              <Video className="w-5 h-5 mr-2" />
+              {isUnlimitedCall ? 'Начать звонок' : 'Начать встречу'}
+            </Button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="text-sm text-muted-foreground hover:text-white transition-colors"
+            >
+              Не сейчас — вернуться в чат
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* CONNECTING */}
       <AnimatePresence>
@@ -144,12 +289,14 @@ export default function VideoCall() {
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Соединяемся...</span>
             </div>
-            <p className="text-xs text-muted-foreground/60 mt-2">Видео-встреча на 3 минуты</p>
+            <p className="text-xs text-muted-foreground/60 mt-2">
+              {isUnlimitedCall ? 'Без ограничения по времени' : 'Видео-встреча на 3 минуты'}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ACTIVE — Timer */}
+      {/* ACTIVE — Timer / elapsed */}
       {phase === 'active' && (
         <div className="relative z-10 safe-top flex justify-center pt-6">
           <motion.div
@@ -157,28 +304,43 @@ export default function VideoCall() {
             animate={{ y: 0, opacity: 1 }}
             className="glass-strong rounded-2xl px-6 py-3 flex items-center gap-3"
           >
-            <div className="relative w-10 h-10">
-              <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-                <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                <circle
-                  cx="20" cy="20" r="17" fill="none"
-                  stroke={timeLeft <= 30 ? 'hsl(0, 72%, 51%)' : 'hsl(270, 80%, 60%)'}
-                  strokeWidth="3"
-                  strokeDasharray={`${2 * Math.PI * 17}`}
-                  strokeDashoffset={`${2 * Math.PI * 17 * (1 - progress)}`}
-                  strokeLinecap="round"
-                  className="transition-all duration-1000"
-                />
-              </svg>
-              <Timer className="w-4 h-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            </div>
-            <div>
-              <div className={`text-2xl font-bold tabular-nums ${timeLeft <= 30 ? 'text-red-400' : 'text-white'}`}>
-                {minutes}:{seconds.toString().padStart(2, '0')}
-              </div>
-              <div className="text-[10px] text-white/50 uppercase tracking-wider">осталось</div>
-            </div>
-            {/* Active indicator */}
+            {isUnlimitedCall ? (
+              <>
+                <div className="w-10 h-10 rounded-full glass flex items-center justify-center">
+                  <Timer className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold tabular-nums text-white">
+                    {formatCallDuration(elapsed)}
+                  </div>
+                  <div className="text-[10px] text-white/50 uppercase tracking-wider">на связи</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="relative w-10 h-10">
+                  <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                    <circle
+                      cx="20" cy="20" r="17" fill="none"
+                      stroke={timeLeft <= 30 ? 'hsl(0, 72%, 51%)' : 'hsl(270, 80%, 60%)'}
+                      strokeWidth="3"
+                      strokeDasharray={`${2 * Math.PI * 17}`}
+                      strokeDashoffset={`${2 * Math.PI * 17 * (1 - progress)}`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <Timer className="w-4 h-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold tabular-nums ${timeLeft <= 30 ? 'text-red-400' : 'text-white'}`}>
+                    {minutes}:{seconds.toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-[10px] text-white/50 uppercase tracking-wider">осталось</div>
+                </div>
+              </>
+            )}
             <div className="flex items-center gap-1.5 ml-2 glass rounded-full px-3 py-1">
               <div className="w-2 h-2 rounded-full bg-green-400" />
               <span className="text-[11px] text-white/70">В эфире</span>
@@ -188,6 +350,7 @@ export default function VideoCall() {
       )}
 
       {/* Local video PiP */}
+      {(phase === 'lobby' || phase === 'connecting' || phase === 'active') && (
       <div className="absolute top-24 right-4 z-20 w-28 h-40 rounded-2xl overflow-hidden border border-white/20 shadow-2xl">
         <video ref={localVideoRef} autoPlay muted playsInline className={`w-full h-full object-cover ${videoOff ? 'hidden' : ''}`} />
         {videoOff && (
@@ -196,6 +359,7 @@ export default function VideoCall() {
           </div>
         )}
       </div>
+      )}
 
       {/* RATING SCREEN */}
       <AnimatePresence>

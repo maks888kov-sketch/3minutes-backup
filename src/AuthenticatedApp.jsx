@@ -20,6 +20,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import PageNotFound from './lib/PageNotFound';
+import { Loader2 } from 'lucide-react';
 
 const AUTH_ROUTES = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
 const PUBLIC_ROUTES = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/onboarding'];
@@ -28,7 +29,11 @@ function HomeRedirect() {
   const { isAuthenticated, authChecked, isLoadingAuth } = useAuth();
 
   if (!authChecked || isLoadingAuth) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (isAuthenticated) {

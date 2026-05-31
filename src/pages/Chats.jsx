@@ -3,16 +3,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MessageCircle, Search, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCurrentProfile, useChatList } from '@/lib/useProfile';
+import { useCurrentProfile, useChatList, useMatches } from '@/lib/useProfile';
 import { formatChatTime, isProfileOnline } from '@/lib/profileUtils';
+import { getMergedBlockedIds } from '@/lib/moderation';
 
 export default function Chats() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const { data: profile } = useCurrentProfile();
-  const { data: chats = [], isLoading } = useChatList(profile?.id);
+  const blockedIds = getMergedBlockedIds(profile);
+  const { data: chats = [], isLoading, isError, refetch } = useChatList(profile?.id, blockedIds);
+  const { data: matches = [] } = useMatches(profile?.id, blockedIds);
 
-  const filtered = chats.filter(({ other }) => {
+  const filtered = chats.filter(({ other, match }) => {
+    if (!match?.id) return false;
     if (!search.trim()) return true;
     return other?.name?.toLowerCase().includes(search.toLowerCase());
   });
@@ -68,26 +72,51 @@ export default function Chats() {
           <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
             {search.trim()
               ? 'Попробуйте другое имя'
-              : 'Поставьте лайк — при взаимной симпатии здесь появится переписка'}
+              : matches.length > 0
+                ? `У вас ${matches.length} ${matches.length === 1 ? 'пара' : 'пары'} — откройте переписку из раздела «Пары»`
+                : 'Поставьте лайк — при взаимной симпатии здесь появится переписка'}
           </p>
+          {isError && (
+            <p className="text-destructive text-sm mb-4">Не удалось загрузить чаты. Проверьте интернет.</p>
+          )}
           {!search.trim() && (
-            <Button
-              onClick={() => navigate('/discover')}
-              className="gradient-primary border-0 rounded-xl neon-glow"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Искать людей
-            </Button>
+            <div className="flex flex-col gap-2 items-center">
+              {matches.length > 0 ? (
+                <Button
+                  onClick={() => navigate('/matches')}
+                  className="gradient-primary border-0 rounded-xl neon-glow"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Открыть пары
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => navigate('/discover')}
+                  className="gradient-primary border-0 rounded-xl neon-glow"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Искать людей
+                </Button>
+              )}
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Обновить список
+              </button>
+            </div>
           )}
         </div>
       ) : (
         <div className="space-y-0.5 px-3">
           {filtered.map(({ match, other, unread, lastMessage, lastTime }, i) => {
-            if (!other) return null;
-            const online = isProfileOnline(other);
+            const online = other ? isProfileOnline(other) : false;
             const photo =
-              other.photos?.[0] ||
+              other?.photos?.[0] ||
               'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop';
+            const displayName = other?.name || 'Пользователь';
+            const displayAge = other?.age ? `, ${other.age}` : '';
 
             return (
               <motion.div
@@ -112,7 +141,7 @@ export default function Chats() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <h3 className={`font-semibold truncate ${unread > 0 ? 'text-foreground' : ''}`}>
-                        {other.name}, {other.age}
+                        {displayName}{displayAge}
                       </h3>
                       <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                         {formatChatTime(lastTime)}

@@ -118,6 +118,16 @@ export default function Onboarding() {
             Пропустить
           </button>
         )}
+
+        <button
+          onClick={() => {
+            markOnboardingSeen();
+            navigate('/login');
+          }}
+          className="block w-full text-center text-muted-foreground text-sm"
+        >
+          Уже есть аккаунт? Войти
+        </button>
       </div>
     </div>
   );

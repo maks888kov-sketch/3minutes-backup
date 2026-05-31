@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -7,19 +7,37 @@ import { showNotification } from '@/components/AppNotifications';
 import SwipeCard from '@/components/SwipeCard';
 import MatchPopup from '@/components/MatchPopup';
 import DailyPicks from '@/components/DailyPicks';
+import DiscoverFiltersSheet from '@/components/discover/DiscoverFiltersSheet';
 import DiscoverSkeleton from '@/components/DiscoverSkeleton';
-import { Heart, X, Star, Sparkles, Flame, RefreshCw } from 'lucide-react';
-
+import { countActiveFilters, getFilterSummary } from '@/lib/discoverFilters';
+import { isTestBotId, isTestBotsEnabled, TEST_BOT_PROFILES } from '@/lib/testBots';
+import { recordTestBotSwipe, resetTestBotState } from '@/lib/testBotStore';
+import { Heart, X, Star, Sparkles, Flame, RefreshCw, SlidersHorizontal, Bot } from 'lucide-react';
 export default function Discover() {
   const { data: profile, isLoading: profileLoading } = useCurrentProfile();
-  const { data: profiles = [], isLoading, refetch } = useDiscoverProfiles(profile);
+  const { data: discoverData, isLoading, refetch } = useDiscoverProfiles(profile);
+  const profiles = discoverData?.profiles ?? [];
+  const poolSize = discoverData?.poolSize ?? 0;
   const { data: onlineCount = 0 } = useOnlineCount();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchPopup, setMatchPopup] = useState(null);
   const [showDailyPicks, setShowDailyPicks] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const touchStartY = useRef(0);
   const queryClient = useQueryClient();
+
+  const activeFilters = countActiveFilters(profile);
+  const filtersTooStrict = poolSize > 0 && profiles.length === 0;
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [
+    profile?.min_age_filter,
+    profile?.max_age_filter,
+    profile?.city_filter,
+    profile?.looking_for,
+  ]);
 
   const handleRefresh = useCallback(async () => {
     setPullRefreshing(true);
@@ -36,11 +54,44 @@ export default function Discover() {
   };
 
   const handleSwipe = useCallback(async (direction, options = {}) => {
-    const targetProfile = profiles[currentIndex];
+    const targetProfile = options.targetProfile || profiles[currentIndex];
     if (!targetProfile || !profile) return;
 
     const isLike = direction === 'right' || direction === 'super';
     const isSuperLike = direction === 'super' || options.superLike;
+
+    if (isTestBotId(targetProfile.id)) {
+      const result = recordTestBotSwipe(profile.id, targetProfile.id, direction, { superLike: isSuperLike });
+
+      if (isSuperLike) {
+        showNotification({
+          type: 'match',
+          title: 'Суперлайк отправлен ⭐',
+          body: `${targetProfile.name} увидит, что вы заинтересованы`,
+        });
+      }
+
+      if (result.matched && result.match) {
+        setMatchPopup({ match: result.match, otherProfile: targetProfile });
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
+        queryClient.invalidateQueries({ queryKey: ['chatList'] });
+      } else if (isLike) {
+        showNotification({
+          type: 'info',
+          title: 'Лайк отправлен',
+          body: `${targetProfile.name} увидит твою симпатию`,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['discover'] });
+
+      if (options.targetProfile) {
+        setCurrentIndex((prev) => Math.max(prev, profiles.findIndex((p) => p.id === targetProfile.id) + 1));
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
+      return;
+    }
 
     await base44.entities.Like.create({
       from_profile_id: profile.id,
@@ -76,7 +127,11 @@ export default function Discover() {
       }
     }
 
-    setCurrentIndex((prev) => prev + 1);
+    if (options.targetProfile) {
+      setCurrentIndex((prev) => Math.max(prev, profiles.findIndex((p) => p.id === targetProfile.id) + 1));
+    } else {
+      setCurrentIndex((prev) => prev + 1);
+    }
   }, [profiles, currentIndex, profile, queryClient]);
 
   if (profileLoading || isLoading) {
@@ -99,6 +154,22 @@ export default function Discover() {
   }
 
   const remaining = profiles.slice(currentIndex);
+  const testBotsInFeed = remaining.filter((p) => isTestBotId(p.id)).length;
+  const testBotsMatchBackCount = TEST_BOT_PROFILES.filter((b) => b.willMatchBack).length;
+
+  const handleResetTestBots = () => {
+    if (!profile?.id) return;
+    resetTestBotState(profile.id);
+    setCurrentIndex(0);
+    queryClient.invalidateQueries({ queryKey: ['discover'] });
+    queryClient.invalidateQueries({ queryKey: ['matches'] });
+    queryClient.invalidateQueries({ queryKey: ['chatList'] });
+    showNotification({
+      type: 'info',
+      title: 'Тест-боты сброшены',
+      body: 'Можно снова листать и проверять матчи',
+    });
+  };
 
   return (
     <div
@@ -133,7 +204,19 @@ export default function Discover() {
           <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
         </div>
         <div className="flex items-center gap-2">
-          {/* Online count */}
+          <button
+            onClick={() => setShowFilters(true)}
+            className="relative flex items-center gap-1.5 glass rounded-xl px-3 py-2"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-primary" />
+            <span className="text-xs font-medium">Фильтры</span>
+            {activeFilters > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
+                style={{ background: 'linear-gradient(135deg, hsl(270,80%,60%), hsl(330,85%,60%))' }}>
+                {activeFilters}
+              </span>
+            )}
+          </button>
           <div className="flex items-center gap-1.5 glass rounded-xl px-3 py-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs font-medium text-green-400">{onlineCount} онлайн</span>
@@ -143,16 +226,46 @@ export default function Discover() {
             className="flex items-center gap-1.5 glass rounded-xl px-3 py-2"
           >
             <Flame className="w-4 h-4 text-orange-400" />
-            <span className="text-xs font-medium text-orange-400">Daily</span>
+            <span className="text-xs font-medium text-orange-400">Подбор</span>
           </button>
         </div>
       </div>
 
+      {activeFilters > 0 && (
+        <div className="relative z-20 px-5 -mt-2 mb-2">
+          <button
+            onClick={() => setShowFilters(true)}
+            className="text-xs text-muted-foreground glass rounded-full px-3 py-1.5 hover:text-foreground transition-colors"
+          >
+            {getFilterSummary(profile)}
+          </button>
+        </div>
+      )}
+
+      {isTestBotsEnabled() && (
+        <div className="relative z-20 px-5 mb-2">
+          <div className="glass rounded-xl px-3 py-2.5 flex items-center gap-2 text-xs">
+            <Bot className="w-4 h-4 text-primary flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">Тест-боты включены</p>
+              <p className="text-muted-foreground text-[10px]">
+                {testBotsInFeed > 0 ? `${testBotsInFeed} в ленте · ` : ''}{testBotsMatchBackCount} ботов ответят взаимностью
+              </p>
+            </div>
+            <button
+              onClick={handleResetTestBots}
+              className="text-[10px] text-primary whitespace-nowrap hover:underline"
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Cards */}
-      <div className="relative flex-1 mx-4 mb-4">
+      <div className="relative flex-1 mx-4 mb-4 min-h-[min(540px,calc(100dvh-19rem))]">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
-            {/* floating heart */}
             <motion.div
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -162,24 +275,66 @@ export default function Discover() {
                 style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.6), transparent 70%)' }} />
               <div className="relative w-24 h-24 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}>
-                <Heart className="w-12 h-12 text-primary" />
+                {filtersTooStrict ? (
+                  <SlidersHorizontal className="w-12 h-12 text-primary" />
+                ) : (
+                  <Heart className="w-12 h-12 text-primary" />
+                )}
               </div>
             </motion.div>
             <div>
-              <h2 className="text-2xl font-bold mb-2">Пока никого нет</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Ты просмотрел всех поблизости.<br />Загляни позже — новые люди появятся скоро!
-              </p>
+              {filtersTooStrict ? (
+                <>
+                  <h2 className="text-2xl font-bold mb-2">Никто не подходит</h2>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    Под текущие фильтры никто не попадает.<br />
+                    Ослабь возраст, город или «кого показывать».
+                  </p>
+                </>
+              ) : currentIndex > 0 ? (
+                <>
+                  <h2 className="text-2xl font-bold mb-2">Пока всё</h2>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    Ты просмотрел всех по текущим фильтрам.<br />
+                    Загляни позже — новые люди появятся скоро!
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold mb-2">Пока никого нет</h2>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    В приложении пока мало анкет.<br />
+                    Загляни позже — новые люди появятся скоро!
+                  </p>
+                </>
+              )}
             </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleRefresh}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm text-white"
-              style={{ background: 'linear-gradient(135deg, hsl(270,80%,60%), hsl(330,85%,60%))' }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              Обновить рекомендации
-            </motion.button>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              {filtersTooStrict && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowFilters(true)}
+                  className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm text-white w-full"
+                  style={{ background: 'linear-gradient(135deg, hsl(270,80%,60%), hsl(330,85%,60%))' }}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  Изменить фильтры
+                </motion.button>
+              )}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRefresh}
+                className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm w-full ${
+                  filtersTooStrict
+                    ? 'glass text-foreground'
+                    : 'text-white'
+                }`}
+                style={filtersTooStrict ? undefined : { background: 'linear-gradient(135deg, hsl(270,80%,60%), hsl(330,85%,60%))' }}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Обновить рекомендации
+              </motion.button>
+            </div>
           </div>
         ) : (
           <motion.div
@@ -239,15 +394,21 @@ export default function Discover() {
         )}
       </AnimatePresence>
 
+      {/* Filters Sheet */}
+      <AnimatePresence>
+        {showFilters && (
+          <DiscoverFiltersSheet
+            profile={profile}
+            onClose={() => setShowFilters(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Daily Picks */}
       <AnimatePresence>
         {showDailyPicks && (
           <DailyPicks profiles={profiles} onClose={() => setShowDailyPicks(false)} onSwipe={(p, dir) => {
-            const idx = profiles.findIndex(x => x.id === p.id);
-            if (idx !== -1) {
-              setCurrentIndex(idx);
-              setTimeout(() => handleSwipe(dir), 100);
-            }
+            handleSwipe(dir, { targetProfile: p });
             setShowDailyPicks(false);
           }} />
         )}

@@ -43,8 +43,83 @@ export function getGoalDisplay(goal) {
   return PROFILE_GOALS.find((g) => g.value === goal) || PROFILE_GOALS[3];
 }
 
+/** Единый список интересов — в profile-setup, discover и редактировании профиля */
+export const PROFILE_INTERESTS = [
+  { id: 'music', emoji: '🎵', label: 'Музыка' },
+  { id: 'movies', emoji: '🎬', label: 'Кино' },
+  { id: 'books', emoji: '📚', label: 'Книги' },
+  { id: 'sport', emoji: '🏋️', label: 'Спорт' },
+  { id: 'travel', emoji: '✈️', label: 'Путешествия' },
+  { id: 'cooking', emoji: '🍳', label: 'Кулинария' },
+  { id: 'games', emoji: '🎮', label: 'Игры' },
+  { id: 'photo', emoji: '📸', label: 'Фото' },
+  { id: 'art', emoji: '🎨', label: 'Искусство' },
+  { id: 'tech', emoji: '💻', label: 'Технологии' },
+  { id: 'pets', emoji: '🐾', label: 'Животные' },
+  { id: 'yoga', emoji: '🧘', label: 'Йога' },
+  { id: 'coffee', emoji: '☕', label: 'Кофе' },
+  { id: 'theater', emoji: '🎭', label: 'Театр' },
+  { id: 'nature', emoji: '🌿', label: 'Природа' },
+  { id: 'guitar', emoji: '🎸', label: 'Гитара' },
+  { id: 'dance', emoji: '💃', label: 'Танцы' },
+  { id: 'running', emoji: '🏃', label: 'Бег' },
+  { id: 'karaoke', emoji: '🎤', label: 'Караоке' },
+  { id: 'skate', emoji: '🛹', label: 'Скейт' },
+];
+
+const LEGACY_INTEREST_ALIASES = {
+  Готовка: 'cooking',
+  Арт: 'art',
+};
+
+export function interestValue(interest) {
+  return `${interest.emoji} ${interest.label}`;
+}
+
+export const INTEREST_OPTIONS = PROFILE_INTERESTS.map(interestValue);
+
+export function resolveInterestId(tag) {
+  if (!tag) return null;
+  const byValue = PROFILE_INTERESTS.find((i) => interestValue(i) === tag);
+  if (byValue) return byValue.id;
+  const byLabel = PROFILE_INTERESTS.find((i) => i.label === tag);
+  if (byLabel) return byLabel.id;
+  const aliasId = LEGACY_INTEREST_ALIASES[tag];
+  if (aliasId) return aliasId;
+  const stripped = String(tag).replace(/^[^\s]+\s/, '');
+  const byStripped = PROFILE_INTERESTS.find((i) => i.label === stripped);
+  return byStripped?.id || null;
+}
+
+export function displayInterest(tag) {
+  const id = resolveInterestId(tag);
+  const interest = PROFILE_INTERESTS.find((i) => i.id === id);
+  if (interest) return { emoji: interest.emoji, label: interest.label, value: interestValue(interest) };
+  const label = String(tag).replace(/^[^\s]+\s/, '') || tag;
+  return { emoji: '✨', label, value: tag };
+}
+
 export function sharedInterestsCount(a, b) {
   if (!a?.length || !b?.length) return 0;
-  const setB = new Set(b);
-  return a.filter((tag) => setB.has(tag)).length;
+  const setB = new Set(b.map(resolveInterestId).filter(Boolean));
+  return a.map(resolveInterestId).filter((id) => id && setB.has(id)).length;
+}
+
+export function pickBestProfile(profiles) {
+  if (!profiles?.length) return null;
+  if (profiles.length === 1) return profiles[0];
+
+  return [...profiles].sort((a, b) => {
+    const completeA = a.profile_complete ? 1 : 0;
+    const completeB = b.profile_complete ? 1 : 0;
+    if (completeB !== completeA) return completeB - completeA;
+
+    const photosA = a.photos?.length || 0;
+    const photosB = b.photos?.length || 0;
+    if (photosB !== photosA) return photosB - photosA;
+
+    const dateA = new Date(a.updated_date || a.created_date || 0).getTime();
+    const dateB = new Date(b.updated_date || b.created_date || 0).getTime();
+    return dateB - dateA;
+  })[0];
 }

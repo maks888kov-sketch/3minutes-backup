@@ -4,13 +4,16 @@ import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useCurrentProfile, useMatches, useLikedMe, useLikedMeProfiles } from '@/lib/useProfile';
 import { isProfileOnline } from '@/lib/profileUtils';
+import { getTestBotProfile, isTestBotId } from '@/lib/testBots';
+import { getMergedBlockedIds } from '@/lib/moderation';
 import { Heart, MessageCircle, Crown, Loader2, Sparkles, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Matches() {
   const navigate = useNavigate();
   const { data: profile } = useCurrentProfile();
-  const { data: matches = [], isLoading } = useMatches(profile?.id);
+  const blockedIds = getMergedBlockedIds(profile);
+  const { data: matches = [], isLoading } = useMatches(profile?.id, blockedIds);
   const { data: likedMe = [] } = useLikedMe(profile?.id);
   const { data: likedProfiles = [] } = useLikedMeProfiles(profile?.id);
   const [matchProfiles, setMatchProfiles] = useState({});
@@ -22,8 +25,13 @@ export default function Matches() {
     );
     const uniqueIds = [...new Set(ids)];
     Promise.all(
-      uniqueIds.map(id => base44.entities.Profile.filter({ id }).then(ps => [id, ps[0]]))
-    ).then(pairs => {
+      uniqueIds.map((id) => {
+        if (isTestBotId(id)) {
+          return Promise.resolve([id, getTestBotProfile(id)]);
+        }
+        return base44.entities.Profile.filter({ id }).then((ps) => [id, ps[0]]);
+      })
+    ).then((pairs) => {
       const loaded = {};
       pairs.forEach(([id, p]) => { if (p) loaded[id] = p; });
       setMatchProfiles(loaded);
@@ -39,6 +47,7 @@ export default function Matches() {
   }
 
   const empty = matches.length === 0 && likedMe.length === 0;
+  const hasLikesOnly = matches.length === 0 && likedMe.length > 0;
 
   return (
     <div className="min-h-screen pb-24 safe-top">
@@ -97,6 +106,20 @@ export default function Matches() {
             <Sparkles className="w-4 h-4 mr-2" />
             Искать людей
           </Button>
+        </div>
+      ) : hasLikesOnly ? (
+        <div className="px-5">
+          <div className="text-center py-12 px-4 glass rounded-2xl">
+            <Heart className="w-10 h-10 text-primary mx-auto mb-3" />
+            <h3 className="font-bold text-lg mb-2">Взаимных пар пока нет</h3>
+            <p className="text-muted-foreground text-sm mb-5">
+              Тебя уже лайкнули — поставь лайк в ответ, и пара появится здесь
+            </p>
+            <Button onClick={() => navigate('/discover')} className="gradient-primary border-0 rounded-xl neon-glow">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Смотреть анкеты
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="px-5 space-y-3">

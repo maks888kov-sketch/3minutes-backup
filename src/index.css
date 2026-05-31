@@ -137,3 +137,9 @@
 .safe-top {
   padding-top: env(safe-area-inset-top, 0px);
 }
+
+/* Chat input — выше края экрана на телефонах */
+.chat-composer {
+  flex-shrink: 0;
+  padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.875rem));
+}

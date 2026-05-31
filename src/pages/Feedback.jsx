@@ -13,6 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { showNotification } from '@/components/AppNotifications';
 
 const categories = [
   { id: 'feature', label: 'Идея', icon: Lightbulb, color: 'text-yellow-400' },
@@ -53,34 +54,64 @@ export default function Feedback() {
   const handleSubmit = async () => {
     if (!form.title.trim()) return;
     setSubmitting(true);
-    await base44.entities.Feedback.create({
-      ...form,
-      author_name: profile?.name || 'Аноним',
-      votes: 0,
-      voter_ids: [],
-    });
-    queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
-    setSubmitting(false);
-    setSubmitted(true);
-    setForm({ title: '', description: '', category: 'feature' });
-    setTimeout(() => {
-      setSubmitted(false);
-      setShowForm(false);
-    }, 2000);
+    try {
+      await base44.entities.Feedback.create({
+        ...form,
+        author_name: profile?.name || 'Аноним',
+        votes: 0,
+        voter_ids: [],
+      });
+      queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
+      setSubmitted(true);
+      setForm({ title: '', description: '', category: 'feature' });
+      setTimeout(() => {
+        setSubmitted(false);
+        setShowForm(false);
+      }, 2000);
+    } catch {
+      showNotification({
+        type: 'error',
+        title: 'Не удалось отправить',
+        body: 'Попробуйте ещё раз позже',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleVote = async (feedback) => {
     if (!profile) return;
     const alreadyVoted = (feedback.voter_ids || []).includes(profile.id);
     if (alreadyVoted) return;
-    await base44.entities.Feedback.update(feedback.id, {
-      votes: (feedback.votes || 0) + 1,
-      voter_ids: [...(feedback.voter_ids || []), profile.id],
-    });
-    queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
+    try {
+      await base44.entities.Feedback.update(feedback.id, {
+        votes: (feedback.votes || 0) + 1,
+        voter_ids: [...(feedback.voter_ids || []), profile.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
+      showNotification({
+        type: 'info',
+        title: 'Голос учтён',
+        body: 'Спасибо за поддержку идеи',
+      });
+    } catch {
+      showNotification({
+        type: 'error',
+        title: 'Не удалось проголосовать',
+        body: 'Попробуйте ещё раз',
+      });
+    }
   };
 
   const filtered = filter === 'all' ? feedbacks : feedbacks.filter(f => f.status === filter);
+
+  const emptyMessages = {
+    all: { title: 'Пока нет предложений', body: 'Будь первым — нажми «Предложить»' },
+    planned: { title: 'Ничего в планах', body: 'Идеи с голосами попадут сюда' },
+    in_progress: { title: 'Сейчас ничего не делаем', body: 'Следи за обновлениями' },
+    done: { title: 'Готовых пунктов пока нет', body: 'Скоро появятся первые результаты' },
+  };
+  const emptyState = emptyMessages[filter] || emptyMessages.all;
 
   return (
     <div className="min-h-screen pb-24 safe-top relative">
@@ -231,7 +262,8 @@ export default function Feedback() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
             <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">Пока нет предложений</p>
+            <p className="font-medium mb-1">{emptyState.title}</p>
+            <p className="text-muted-foreground text-sm">{emptyState.body}</p>
           </div>
         ) : (
           filtered.map((fb, i) => {

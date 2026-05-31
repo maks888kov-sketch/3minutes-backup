@@ -1,5 +1,5 @@
 const EDITOR_URL = 'https://app.base44.com/apps/6a1356896fdf56fa48755d68/editor';
-const HOSTED_URL = 'https://awesome-three-minute-spark-6a135689.base44.app';
+const HOSTED_URL = 'https://awesome-three-minute-spark.base44.app';
 
 export default function AppPublishRequired({ compact = false }) {
   const steps = [

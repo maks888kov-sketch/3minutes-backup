@@ -9,21 +9,13 @@ import { useAuth } from '@/lib/AuthContext';
 import { useCurrentProfile, useUpdateProfile } from '@/lib/useProfile';
 import { getAuthErrorMessage } from '@/lib/authRedirect';
 import { getUploadErrorMessage, uploadPublicFile } from '@/lib/uploadFile';
-import { PROFILE_GOALS } from '@/lib/profileUtils';
+import { PROFILE_GOALS, INTEREST_OPTIONS } from '@/lib/profileUtils';
+import { RUSSIAN_CITIES } from '@/lib/russianCities';
 import { Camera, ArrowRight, ArrowLeft, Sparkles, MapPin, User, Target, Loader2 } from 'lucide-react';
-
-const interests = [
-  '🎵 Музыка', '🎬 Кино', '📚 Книги', '🏋️ Спорт', '✈️ Путешествия',
-  '🍳 Кулинария', '🎮 Игры', '📸 Фото', '🎨 Искусство', '💻 Технологии',
-  '🐾 Животные', '🧘 Йога', '☕ Кофе', '🎭 Театр', '🌿 Природа',
-  '🎸 Гитара', '💃 Танцы', '🏃 Бег', '🎤 Караоке', '🛹 Скейт',
-];
 
 const goals = PROFILE_GOALS;
 
 const steps = ['photos', 'basics', 'about', 'interests', 'goal'];
-
-const CITIES = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск'];
 
 function guessNameFromUser(user) {
   if (!user) return '';
@@ -379,7 +371,7 @@ export default function ProfileSetup() {
                       className={`w-full h-12 bg-secondary border-0 rounded-xl px-3 text-sm text-foreground outline-none appearance-none ${!form.city.trim() && stepError ? 'ring-1 ring-destructive/60' : ''}`}
                     >
                       <option value="">Выберите город</option>
-                      {CITIES.map((c) => (
+                      {RUSSIAN_CITIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
@@ -452,7 +444,7 @@ export default function ProfileSetup() {
                 <h2 className="text-2xl font-bold mb-2">Интересы</h2>
                 <p className="text-muted-foreground mb-6">Выбери то, что тебе близко</p>
                 <div className="flex flex-wrap gap-2">
-                  {interests.map((interest) => (
+                  {INTEREST_OPTIONS.map((interest) => (
                     <button
                       key={interest}
                       onClick={() => toggleInterest(interest)}

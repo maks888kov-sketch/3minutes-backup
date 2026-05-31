@@ -10,23 +10,52 @@ import { showNotification } from '@/components/AppNotifications';
 import AppPublishRequired from '@/components/AppPublishRequired';
 import {
   Camera, MapPin, Settings2, Crown,
-  LogOut, ChevronRight, Pencil, Shield, Bell, Eye, Loader2, Lightbulb, Star
+  LogOut, ChevronRight, Pencil,   Shield, Bell, Eye, Loader2, Lightbulb, Star, ShieldBan
 } from 'lucide-react';
 import EditProfileSheet from '@/components/profile/EditProfileSheet';
-import AgeRangeSlider from '@/components/profile/AgeRangeSlider';
-
-const CITIES = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Все города'];
+import SearchFilters from '@/components/discover/SearchFilters';
+import { useSearchFilters } from '@/lib/useSearchFilters';
+import { getFilterSummary } from '@/lib/discoverFilters';
+import { getMergedBlockedIds } from '@/lib/moderation';
+import { useModerationActions } from '@/lib/useModeration';
+import { useQuery } from '@tanstack/react-query';
+import { getTestBotProfile, isTestBotId } from '@/lib/testBots';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { data: profile, isLoading } = useCurrentProfile();
   const updateProfile = useUpdateProfile();
+  const {
+    ageRange,
+    cityFilter,
+    lookingFor,
+    handleAgeChange,
+    handleCityChange,
+    handleLookingForChange,
+    isSaving: filtersSaving,
+  } = useSearchFilters(profile);
+  const { unblockUser } = useModerationActions();
+  const blockedIds = getMergedBlockedIds(profile);
+
+  const { data: blockedProfiles = [] } = useQuery({
+    queryKey: ['blockedProfiles', profile?.id, blockedIds.join(',')],
+    queryFn: async () => {
+      if (!blockedIds.length) return [];
+      const profiles = await Promise.all(
+        blockedIds.map(async (id) => {
+          if (isTestBotId(id)) return getTestBotProfile(id);
+          const ps = await base44.entities.Profile.filter({ id });
+          return ps[0] || { id, name: 'Пользователь', photos: [] };
+        })
+      );
+      return profiles.filter(Boolean);
+    },
+    enabled: !!profile?.id && blockedIds.length > 0,
+  });
 
   const [showEdit, setShowEdit] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [ageRange, setAgeRange] = useState([18, 45]);
-  const [cityFilter, setCityFilter] = useState('');
   const [userGoal, setUserGoal] = useState('relationship');
   const [photoError, setPhotoError] = useState('');
   const [saveError, setSaveError] = useState('');
@@ -35,11 +64,19 @@ export default function Settings() {
 
   useEffect(() => {
     if (profile) {
-      setAgeRange([profile.min_age_filter || 18, profile.max_age_filter || 45]);
-      setCityFilter(profile.city_filter || '');
       setUserGoal(profile.goal || 'relationship');
     }
   }, [profile]);
+
+  const handleUnblock = async (targetId) => {
+    if (!profile) return;
+    try {
+      await unblockUser.mutateAsync({ myProfile: profile, targetProfileId: targetId });
+      showNotification({ type: 'info', title: 'Разблокировано', body: 'Пользователь снова может появиться в поиске' });
+    } catch {
+      showNotification({ type: 'error', title: 'Ошибка', body: 'Не удалось разблокировать' });
+    }
+  };
 
   const handleGoalChange = (goal) => {
     setUserGoal(goal);
@@ -113,20 +150,6 @@ export default function Settings() {
       }
       setSaveError(getAuthErrorMessage(err));
       throw err;
-    }
-  };
-
-  const handleAgeChange = (range) => {
-    setAgeRange(range);
-    if (profile) {
-      updateProfile.mutate({ id: profile.id, data: { min_age_filter: range[0], max_age_filter: range[1] } });
-    }
-  };
-
-  const handleCityFilter = (val) => {
-    setCityFilter(val);
-    if (profile) {
-      updateProfile.mutate({ id: profile.id, data: { city_filter: val === 'Все города' ? '' : val } });
     }
   };
 
@@ -252,30 +275,71 @@ export default function Settings() {
         {/* Filters */}
         <div className="rounded-2xl p-5"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm">
-            <Settings2 className="w-4 h-4 text-primary" />
-            Фильтры поиска
-          </h3>
-
-          {/* Age range slider */}
-          <AgeRangeSlider
-            min={18}
-            max={65}
-            value={ageRange}
-            onChange={handleAgeChange}
-          />
-
-          {/* City filter */}
-          <div className="mt-3">
-            <span className="text-xs text-muted-foreground block mb-2">Город</span>
-            <select
-              value={cityFilter || 'Все города'}
-              onChange={e => handleCityFilter(e.target.value)}
-              className="w-full h-11 bg-secondary border-0 rounded-xl px-3 text-sm text-foreground outline-none appearance-none"
-            >
-              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold flex items-center gap-2 text-sm">
+              <Settings2 className="w-4 h-4 text-primary" />
+              Фильтры поиска
+            </h3>
+            {filtersSaving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
           </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Применяются в ленте Discover{profile ? ` · сейчас: ${getFilterSummary(profile)}` : ''}
+          </p>
+
+          <SearchFilters
+            ageRange={ageRange}
+            cityFilter={cityFilter}
+            lookingFor={lookingFor}
+            onAgeChange={handleAgeChange}
+            onCityChange={handleCityChange}
+            onLookingForChange={handleLookingForChange}
+            disabled={filtersSaving}
+          />
+        </div>
+
+        {/* Blocked users */}
+        <div className="rounded-2xl p-5"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <h3 className="font-semibold mb-1 flex items-center gap-2 text-sm">
+            <ShieldBan className="w-4 h-4 text-red-400" />
+            Заблокированные
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Не видны в поиске и чатах. Жалобу можно отправить из переписки — кнопка 🚩
+          </p>
+          {blockedProfiles.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-3">Список пуст</p>
+          ) : (
+            <div className="space-y-2">
+              {blockedProfiles.map((blocked) => (
+                <div
+                  key={blocked.id}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-secondary">
+                    {blocked.photos?.[0] ? (
+                      <img src={blocked.photos[0]} alt="" className="w-full h-full object-cover" />
+                    ) : null}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{blocked.name || 'Пользователь'}</p>
+                    {blocked.city && (
+                      <p className="text-[11px] text-muted-foreground truncate">{blocked.city}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUnblock(blocked.id)}
+                    disabled={unblockUser.isPending}
+                    className="text-xs text-primary whitespace-nowrap hover:underline disabled:opacity-50"
+                  >
+                    Разблокировать
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Menu */}

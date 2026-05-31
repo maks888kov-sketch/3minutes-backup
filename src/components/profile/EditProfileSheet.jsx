@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { getAuthErrorMessage, isAppUnavailableError } from '@/lib/authRedirect';
 import AppPublishRequired from '@/components/AppPublishRequired';
 
-const CITIES = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск'];
+import { INTEREST_OPTIONS } from '@/lib/profileUtils';
+import { RUSSIAN_CITIES } from '@/lib/russianCities';
 
 export default function EditProfileSheet({
   profile,
@@ -21,6 +22,7 @@ export default function EditProfileSheet({
     age: profile?.age || '',
     city: profile?.city || '',
     bio: profile?.bio || '',
+    interests: profile?.interests || [],
   });
   const [localError, setLocalError] = useState('');
   const [showPublishHelp, setShowPublishHelp] = useState(false);
@@ -32,9 +34,19 @@ export default function EditProfileSheet({
         age: profile.age || '',
         city: profile.city || '',
         bio: profile.bio || '',
+        interests: profile.interests || [],
       });
     }
   }, [profile]);
+
+  const toggleInterest = (interest) => {
+    setForm((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter((i) => i !== interest)
+        : [...prev.interests, interest],
+    }));
+  };
 
   const displayError = saveError || localError;
 
@@ -115,7 +127,7 @@ export default function EditProfileSheet({
                   disabled={isSaving}
                 >
                   <option value="">Выберите город</option>
-                  {CITIES.map((c) => (
+                  {RUSSIAN_CITIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
@@ -128,6 +140,26 @@ export default function EditProfileSheet({
                 className="w-full bg-secondary border-0 rounded-xl px-3 py-3 text-sm text-foreground outline-none resize-none placeholder:text-muted-foreground"
                 disabled={isSaving}
               />
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Интересы</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {INTEREST_OPTIONS.map((interest) => (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => toggleInterest(interest)}
+                      disabled={isSaving}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                        form.interests.includes(interest)
+                          ? 'gradient-primary text-white'
+                          : 'bg-secondary text-foreground/70 hover:text-foreground'
+                      }`}
+                    >
+                      {interest}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {displayError && (
