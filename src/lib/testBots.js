@@ -2,7 +2,9 @@
 /** Временные боты для локального тестирования свайпов/матчей/чатов */
 
 export function isTestBotsEnabled() {
-  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_BOTS === 'true';
+  if (import.meta.env.VITE_ENABLE_TEST_BOTS === 'false') return false;
+  // Beta: боты включены и на опубликованном сайте, пока мало реальных анкет
+  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_BOTS === 'true' || import.meta.env.PROD;
 }
 
 export const TEST_BOT_PREFIX = 'test-bot-';
