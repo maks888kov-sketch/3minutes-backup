@@ -44,14 +44,14 @@ function buildAutoSlides(profile, photos) {
     }
 
     if (index === 0) {
-      return       {
+      return {
+        url,
         showName: true,
         tags: [
           { emoji: goal.emoji, label: goal.label },
           profile.city ? { emoji: '📍', label: profile.city } : null,
         ].filter(Boolean),
         text: profile.bio ? `${profile.bio.slice(0, 72)}${profile.bio.length > 72 ? '…' : ''}` : '',
-        extraTagCount: Math.max(0, interests.length + (profile.height_cm ? 1 : 0)),
       };
     }
 
