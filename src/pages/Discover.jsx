@@ -137,7 +137,7 @@ export default function Discover() {
 
   if (profileLoading || isLoading) {
     return (
-      <div className="min-h-screen flex flex-col safe-top relative overflow-hidden">
+      <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden safe-top relative">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[150px]" />
         </div>
@@ -147,7 +147,7 @@ export default function Discover() {
             <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
           </div>
         </div>
-        <div className="relative flex-1 mx-4 mb-4">
+        <div className="relative mx-4 mb-2 min-h-0 flex-1">
           <DiscoverSkeleton />
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function Discover() {
 
   return (
     <div
-      className="min-h-screen flex flex-col safe-top relative overflow-hidden"
+      className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden safe-top relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -199,7 +199,7 @@ export default function Discover() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="relative z-20 flex items-center justify-between px-5 py-4">
+      <div className="relative z-20 flex flex-shrink-0 items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
           <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
@@ -233,7 +233,7 @@ export default function Discover() {
       </div>
 
       {activeFilters > 0 && (
-        <div className="relative z-20 px-5 -mt-2 mb-2">
+        <div className="relative z-20 mb-1 flex-shrink-0 px-5">
           <button
             onClick={() => setShowFilters(true)}
             className="text-xs text-muted-foreground glass rounded-full px-3 py-1.5 hover:text-foreground transition-colors"
@@ -244,8 +244,8 @@ export default function Discover() {
       )}
 
       {isTestBotsEnabled() && (
-        <div className="relative z-20 px-5 mb-2">
-          <div className="glass rounded-xl px-3 py-2.5 flex items-center gap-2 text-xs">
+        <div className="relative z-20 mb-2 flex-shrink-0 px-5">
+          <div className="glass flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
             <Bot className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-medium">Тест-боты включены</p>
@@ -264,7 +264,7 @@ export default function Discover() {
       )}
 
       {/* Cards */}
-      <div className="relative flex-1 mx-4 mb-4 min-h-[min(540px,calc(100dvh-19rem))]">
+      <div className="relative mx-4 mb-2 min-h-0 flex-1">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
             <motion.div
@@ -358,7 +358,7 @@ export default function Discover() {
 
       {/* Action buttons */}
       {remaining.length > 0 && (
-        <div className="relative z-20 flex items-center justify-center gap-4 pb-24 px-6">
+        <div className="relative z-20 flex flex-shrink-0 items-center justify-center gap-4 px-6 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] pt-1">
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => handleSwipe('left')}

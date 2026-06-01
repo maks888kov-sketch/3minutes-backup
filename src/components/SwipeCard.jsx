@@ -1,7 +1,7 @@
 /* b44-full-sync 2026-06-01 */
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Briefcase, ChevronDown } from 'lucide-react';
 import { isProfileOnline, displayInterest, getGoalDisplay } from '@/lib/profileUtils';
 import { isTestBotId } from '@/lib/testBots';
 
@@ -32,6 +32,8 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
   const currentPhoto = photoSrc || photos[photoIndex] || FALLBACK_PHOTO;
   const online = isProfileOnline(profile);
   const goal = getGoalDisplay(profile.goal);
+  const interests = profile.interests || [];
+  const visibleInterests = expanded ? interests : interests.slice(0, 3);
 
   const cardGlow = useTransform(x, [-120, 0, 120], [
     '0 0 50px rgba(239,68,68,0.4)',
@@ -64,17 +66,22 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
       onDragEnd={handleDragEnd}
       className="absolute inset-0 cursor-grab active:cursor-grabbing touch-none"
     >
-      <motion.div style={{ boxShadow: cardGlow }} className="relative w-full h-full min-h-[420px] rounded-3xl overflow-hidden bg-secondary">
+      <motion.div
+        style={{ boxShadow: cardGlow }}
+        className="relative h-full w-full overflow-hidden rounded-3xl bg-secondary"
+      >
         <img
           src={currentPhoto}
           alt={profile.name}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover object-center"
           draggable={false}
           onError={handlePhotoError}
         />
 
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-black/10" />
+
         {photos.length > 1 && (
-          <div className="absolute top-4 left-0 right-0 flex justify-center gap-1 px-4 z-20 pointer-events-none">
+          <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex justify-center gap-1 px-4">
             {photos.map((_, i) => (
               <div
                 key={i}
@@ -92,118 +99,124 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
               type="button"
               aria-label="Предыдущее фото"
               onClick={prevPhoto}
-              className="absolute left-0 top-0 bottom-24 w-1/4 z-10"
+              className="absolute bottom-28 left-0 top-12 z-10 w-1/3"
             />
             <button
               type="button"
               aria-label="Следующее фото"
               onClick={nextPhoto}
-              className="absolute right-0 top-0 bottom-24 w-1/4 z-10"
+              className="absolute bottom-28 right-0 top-12 z-10 w-1/3"
             />
           </>
         )}
 
         <motion.div
           style={{ opacity: likeOpacity }}
-          className="absolute top-20 left-6 border-4 border-green-400 rounded-2xl px-4 py-2 -rotate-12 pointer-events-none z-20"
+          className="pointer-events-none absolute left-6 top-16 z-20 -rotate-12 rounded-2xl border-4 border-green-400 px-4 py-2"
         >
-          <span className="text-green-400 text-3xl font-black tracking-wider">LIKE</span>
+          <span className="text-3xl font-black tracking-wider text-green-400">LIKE</span>
         </motion.div>
         <motion.div
           style={{ opacity: nopeOpacity }}
-          className="absolute top-20 right-6 border-4 border-red-400 rounded-2xl px-4 py-2 rotate-12 pointer-events-none z-20"
+          className="pointer-events-none absolute right-6 top-16 z-20 rotate-12 rounded-2xl border-4 border-red-400 px-4 py-2"
         >
-          <span className="text-red-400 text-3xl font-black tracking-wider">NOPE</span>
+          <span className="text-3xl font-black tracking-wider text-red-400">NOPE</span>
         </motion.div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/10 pointer-events-none" />
+        <div className="pointer-events-none absolute right-4 top-4 z-20 flex flex-col items-end gap-2">
+          {online && (
+            <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 glass">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+              <span className="text-xs font-medium text-white/90">Онлайн</span>
+            </div>
+          )}
+          {isTestBotId(profile.id) && (
+            <div className="rounded-full border border-primary/30 px-2.5 py-1 text-[10px] font-bold text-primary glass">
+              TEST BOT
+            </div>
+          )}
+        </div>
 
-        {online && (
-          <div className="absolute top-6 right-6 flex items-center gap-1.5 glass rounded-full px-3 py-1.5 z-20 pointer-events-none">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-white/90 font-medium">Онлайн</span>
-          </div>
-        )}
-        {isTestBotId(profile.id) && (
-          <div className="absolute top-6 left-6 glass rounded-full px-2.5 py-1 text-[10px] font-bold text-primary border border-primary/30 z-20 pointer-events-none">
-            TEST BOT
-          </div>
-        )}
-
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20 pointer-events-none">
-          <div className="flex items-end justify-between pointer-events-auto">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="text-3xl font-bold text-white">{profile.name}</h3>
-                {profile.age != null && (
-                  <span className="text-2xl text-white/70">{profile.age}</span>
-                )}
-                {profile.is_verified && (
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
-                  </div>
-                )}
-              </div>
-              {profile.city && (
-                <div className="flex items-center gap-1 text-white/70 mb-2">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm">{profile.city}</span>
+        <div className="absolute inset-x-0 bottom-0 z-20 flex max-h-[52%] flex-col justify-end">
+          <div className="pointer-events-auto px-5 pb-5 pt-10">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <h3 className="truncate text-[1.75rem] font-bold leading-tight text-white">
+                    {profile.name}
+                  </h3>
+                  {profile.age != null && (
+                    <span className="text-xl text-white/75">{profile.age}</span>
+                  )}
+                  {profile.is_verified && (
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+                      ✓
+                    </span>
+                  )}
                 </div>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/75">
+                  {profile.city && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      {profile.city}
+                    </span>
+                  )}
+                  {profile.goal && (
+                    <span className="inline-flex items-center gap-1">
+                      <Briefcase className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                      {goal.emoji} {goal.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {(profile.bio || interests.length > 3) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((value) => !value);
+                  }}
+                  className="flex-shrink-0 rounded-full p-2 glass"
+                  aria-label={expanded ? 'Свернуть профиль' : 'Развернуть профиль'}
+                >
+                  <ChevronDown
+                    className={`h-5 w-5 text-white transition-transform ${expanded ? 'rotate-180' : ''}`}
+                  />
+                </button>
               )}
-              {!expanded && profile.bio && (
-                <p className="text-white/80 text-sm line-clamp-2">{profile.bio}</p>
+            </div>
+
+            <div className={`space-y-3 ${expanded ? 'max-h-[28vh] overflow-y-auto pr-1' : ''}`}>
+              {profile.bio && (
+                <p className={`text-sm leading-relaxed text-white/85 ${expanded ? '' : 'line-clamp-2'}`}>
+                  {profile.bio}
+                </p>
               )}
-              {!expanded && profile.interests?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {profile.interests.slice(0, 4).map((tag) => {
+
+              {visibleInterests.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {visibleInterests.map((tag) => {
                     const { emoji, label } = displayInterest(tag);
                     return (
-                      <span key={tag} className="glass rounded-full px-2.5 py-1 text-xs text-white/90">
+                      <span
+                        key={tag}
+                        className="rounded-full px-2.5 py-1 text-xs text-white/90 glass"
+                      >
                         {emoji} {label}
                       </span>
                     );
                   })}
+                  {!expanded && interests.length > 3 && (
+                    <span className="rounded-full px-2.5 py-1 text-xs text-white/70 glass">
+                      +{interests.length - 3}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="glass rounded-full p-2 ml-3 flex-shrink-0"
-            >
-              {expanded ? <ChevronDown className="w-5 h-5 text-white" /> : <ChevronUp className="w-5 h-5 text-white" />}
-            </button>
           </div>
-
-          {expanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mt-3 space-y-3 pointer-events-auto"
-            >
-              {profile.bio && <p className="text-white/85 text-sm">{profile.bio}</p>}
-              {profile.interests?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {profile.interests.map((tag) => {
-                    const { emoji, label } = displayInterest(tag);
-                    return (
-                      <span key={tag} className="glass rounded-full px-3 py-1 text-xs text-white/90">
-                        {emoji} {label}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-              {profile.goal && (
-                <div className="glass rounded-xl px-3 py-2 inline-flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs text-white/90">
-                    {goal.emoji} {goal.label}
-                  </span>
-                </div>
-              )}
-            </motion.div>
-          )}
         </div>
       </motion.div>
     </motion.div>
