@@ -68,163 +68,164 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
     >
       <motion.div
         style={{ boxShadow: cardGlow }}
-        className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl bg-[#0a0810] shadow-2xl"
+        className="relative h-full w-full overflow-hidden rounded-3xl bg-[#14111c] shadow-2xl"
       >
-        {/* Фото — целиком, без обрезки */}
-        <div className="relative min-h-0 flex-1 overflow-hidden">
-          <img
-            src={currentPhoto}
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-45"
-            draggable={false}
-          />
-          <img
-            src={currentPhoto}
-            alt={profile.name}
-            className="relative z-[1] mx-auto h-full w-full object-contain object-center"
-            draggable={false}
-            onError={handlePhotoError}
-          />
+        <img
+          src={currentPhoto}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full scale-105 object-cover blur-xl opacity-60"
+          draggable={false}
+          referrerPolicy="no-referrer"
+        />
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-16 bg-gradient-to-t from-black/50 to-transparent" />
+        <img
+          src={currentPhoto}
+          alt={profile.name}
+          className="absolute inset-0 z-[1] h-full w-full object-contain object-center"
+          draggable={false}
+          referrerPolicy="no-referrer"
+          onError={handlePhotoError}
+        />
 
-          {photos.length > 1 && (
-            <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex justify-center gap-1 px-4">
-              {photos.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 flex-1 rounded-full transition-all ${
-                    i === photoIndex ? 'bg-white' : 'bg-white/30'
-                  }`}
-                />
-              ))}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[42%] bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+
+        {photos.length > 1 && (
+          <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex justify-center gap-1 px-4">
+            {photos.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1 flex-1 rounded-full transition-all ${
+                  i === photoIndex ? 'bg-white' : 'bg-white/30'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {photos.length > 1 && isTop && (
+          <>
+            <button
+              type="button"
+              aria-label="Предыдущее фото"
+              onClick={prevPhoto}
+              className="absolute left-0 top-0 z-10 h-3/5 w-1/3"
+            />
+            <button
+              type="button"
+              aria-label="Следующее фото"
+              onClick={nextPhoto}
+              className="absolute right-0 top-0 z-10 h-3/5 w-1/3"
+            />
+          </>
+        )}
+
+        <motion.div
+          style={{ opacity: likeOpacity }}
+          className="pointer-events-none absolute left-4 top-14 z-20 -rotate-12 rounded-2xl border-4 border-green-400 px-4 py-2"
+        >
+          <span className="text-3xl font-black tracking-wider text-green-400">LIKE</span>
+        </motion.div>
+        <motion.div
+          style={{ opacity: nopeOpacity }}
+          className="pointer-events-none absolute right-4 top-14 z-20 rotate-12 rounded-2xl border-4 border-red-400 px-4 py-2"
+        >
+          <span className="text-3xl font-black tracking-wider text-red-400">NOPE</span>
+        </motion.div>
+
+        <div className="pointer-events-none absolute right-3 top-3 z-20 flex flex-col items-end gap-2">
+          {online && (
+            <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 glass">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+              <span className="text-xs font-medium text-white/90">Онлайн</span>
             </div>
           )}
-
-          {photos.length > 1 && isTop && (
-            <>
-              <button
-                type="button"
-                aria-label="Предыдущее фото"
-                onClick={prevPhoto}
-                className="absolute left-0 top-0 z-10 h-full w-1/3"
-              />
-              <button
-                type="button"
-                aria-label="Следующее фото"
-                onClick={nextPhoto}
-                className="absolute right-0 top-0 z-10 h-full w-1/3"
-              />
-            </>
+          {isTestBotId(profile.id) && (
+            <div className="rounded-full border border-primary/30 px-2.5 py-1 text-[10px] font-bold text-primary glass">
+              TEST BOT
+            </div>
           )}
-
-          <motion.div
-            style={{ opacity: likeOpacity }}
-            className="pointer-events-none absolute left-4 top-14 z-20 -rotate-12 rounded-2xl border-4 border-green-400 px-4 py-2"
-          >
-            <span className="text-3xl font-black tracking-wider text-green-400">LIKE</span>
-          </motion.div>
-          <motion.div
-            style={{ opacity: nopeOpacity }}
-            className="pointer-events-none absolute right-4 top-14 z-20 rotate-12 rounded-2xl border-4 border-red-400 px-4 py-2"
-          >
-            <span className="text-3xl font-black tracking-wider text-red-400">NOPE</span>
-          </motion.div>
-
-          <div className="pointer-events-none absolute right-3 top-3 z-20 flex flex-col items-end gap-2">
-            {online && (
-              <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 glass">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                <span className="text-xs font-medium text-white/90">Онлайн</span>
-              </div>
-            )}
-            {isTestBotId(profile.id) && (
-              <div className="rounded-full border border-primary/30 px-2.5 py-1 text-[10px] font-bold text-primary glass">
-                TEST BOT
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Текст — отдельная панель, не перекрывает фото */}
-        <div className="flex-shrink-0 border-t border-white/10 bg-black/85 px-5 py-4 backdrop-blur-md">
-          <div className="mb-2 flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <h3 className="truncate text-xl font-bold leading-tight text-white">
-                  {profile.name}
-                </h3>
-                {profile.age != null && (
-                  <span className="text-lg text-white/75">{profile.age}</span>
-                )}
-                {profile.is_verified && (
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">
-                    ✓
-                  </span>
-                )}
+        <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-5 pt-2">
+          <div className="pointer-events-auto">
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <h3 className="text-2xl font-bold leading-tight text-white drop-shadow-md">
+                    {profile.name}
+                  </h3>
+                  {profile.age != null && (
+                    <span className="text-xl text-white/90 drop-shadow-md">{profile.age}</span>
+                  )}
+                  {profile.is_verified && (
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">
+                      ✓
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90 drop-shadow-md">
+                  {profile.city && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      {profile.city}
+                    </span>
+                  )}
+                  {profile.goal && (
+                    <span className="inline-flex items-center gap-1">
+                      <Briefcase className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                      {goal.emoji} {goal.label}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/70">
-                {profile.city && (
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                    {profile.city}
-                  </span>
-                )}
-                {profile.goal && (
-                  <span className="inline-flex items-center gap-1">
-                    <Briefcase className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
-                    {goal.emoji} {goal.label}
-                  </span>
-                )}
-              </div>
+              {(profile.bio || interests.length > 3) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((value) => !value);
+                  }}
+                  className="flex-shrink-0 rounded-full p-2 glass"
+                  aria-label={expanded ? 'Свернуть профиль' : 'Развернуть профиль'}
+                >
+                  <ChevronDown
+                    className={`h-4 w-4 text-white transition-transform ${expanded ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              )}
             </div>
 
-            {(profile.bio || interests.length > 3) && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded((value) => !value);
-                }}
-                className="flex-shrink-0 rounded-full p-2 glass"
-                aria-label={expanded ? 'Свернуть профиль' : 'Развернуть профиль'}
-              >
-                <ChevronDown
-                  className={`h-4 w-4 text-white transition-transform ${expanded ? 'rotate-180' : ''}`}
-                />
-              </button>
-            )}
-          </div>
+            <div className={`space-y-2 ${expanded ? 'max-h-24 overflow-y-auto pr-1' : ''}`}>
+              {profile.bio && (
+                <p className={`text-sm leading-relaxed text-white/90 drop-shadow-md ${expanded ? '' : 'line-clamp-2'}`}>
+                  {profile.bio}
+                </p>
+              )}
 
-          <div className={`space-y-2 ${expanded ? 'max-h-28 overflow-y-auto pr-1' : ''}`}>
-            {profile.bio && (
-              <p className={`text-sm leading-relaxed text-white/80 ${expanded ? '' : 'line-clamp-2'}`}>
-                {profile.bio}
-              </p>
-            )}
-
-            {visibleInterests.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {visibleInterests.map((tag) => {
-                  const { emoji, label } = displayInterest(tag);
-                  return (
-                    <span
-                      key={tag}
-                      className="rounded-full px-2.5 py-1 text-[11px] text-white/90 glass"
-                    >
-                      {emoji} {label}
+              {visibleInterests.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {visibleInterests.map((tag) => {
+                    const { emoji, label } = displayInterest(tag);
+                    return (
+                      <span
+                        key={tag}
+                        className="rounded-full px-2.5 py-1 text-[11px] text-white/95 glass"
+                      >
+                        {emoji} {label}
+                      </span>
+                    );
+                  })}
+                  {!expanded && interests.length > 3 && (
+                    <span className="rounded-full px-2.5 py-1 text-[11px] text-white/80 glass">
+                      +{interests.length - 3}
                     </span>
-                  );
-                })}
-                {!expanded && interests.length > 3 && (
-                  <span className="rounded-full px-2.5 py-1 text-[11px] text-white/70 glass">
-                    +{interests.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
