@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 const EDITOR_URL = 'https://app.base44.com/apps/6a1356896fdf56fa48755d68/editor';
 const HOSTED_URL = 'https://awesome-three-minute-spark.base44.app';
 

@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Flag, ShieldBan, Loader2, X } from 'lucide-react';

@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 export function getResetTokenFromSearch(search) {
   const params = new URLSearchParams(search);
   return (

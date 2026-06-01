@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useCurrentProfile } from '@/lib/useProfile';

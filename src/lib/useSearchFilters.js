@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateProfile } from '@/lib/useProfile';

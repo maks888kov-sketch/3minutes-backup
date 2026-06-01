@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import * as React from "react"
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react"

@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { QueryClient } from '@tanstack/react-query';
 
 

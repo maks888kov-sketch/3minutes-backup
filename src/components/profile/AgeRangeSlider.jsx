@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useRef, useState, useCallback } from 'react';
 
 export default function AgeRangeSlider({ min = 18, max = 65, value, onChange }) {

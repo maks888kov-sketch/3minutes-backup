@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';

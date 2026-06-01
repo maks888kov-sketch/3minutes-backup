@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { QueryClientProvider } from '@tanstack/react-query';

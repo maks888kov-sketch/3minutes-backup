@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { createClient } from '@base44/sdk';
 import { appParams } from '@/lib/app-params';
 

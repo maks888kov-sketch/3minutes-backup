@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { motion } from 'framer-motion';
 import { Flame, X, Heart, MapPin, Star } from 'lucide-react';
 import { displayInterest, isProfileOnline } from '@/lib/profileUtils';

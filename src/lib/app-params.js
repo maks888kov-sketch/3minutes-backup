@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 const isNode = typeof window === 'undefined';
 const windowObj = isNode ? { localStorage: new Map() } : window;
 const storage = windowObj.localStorage;

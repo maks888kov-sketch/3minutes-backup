@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { RUSSIAN_CITIES } from './russianCities';
 
 export const FILTER_CITIES = RUSSIAN_CITIES;

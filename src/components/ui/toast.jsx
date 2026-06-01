@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import * as React from "react";
 import { cva } from "class-variance-authority";
 import { X } from "lucide-react";

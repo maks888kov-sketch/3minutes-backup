@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import React from 'react';
 
 const UserNotRegisteredError = () => {

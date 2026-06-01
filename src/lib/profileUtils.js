@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { format, isToday, isYesterday } from 'date-fns';
 import { ru } from 'date-fns/locale';
 

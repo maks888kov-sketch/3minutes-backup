@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 "use client"
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"

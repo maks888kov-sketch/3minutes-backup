@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';

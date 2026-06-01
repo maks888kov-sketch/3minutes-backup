@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';

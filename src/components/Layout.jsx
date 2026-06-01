@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 

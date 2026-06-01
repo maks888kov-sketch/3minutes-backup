@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { hasSeenOnboarding } from '@/lib/authRedirect';

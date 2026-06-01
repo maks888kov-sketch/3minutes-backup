@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Eye, Zap, Star, Shield, RotateCcw, TrendingUp, EyeOff, Sparkles, X, CheckCircle2, Heart, Loader2 } from 'lucide-react';

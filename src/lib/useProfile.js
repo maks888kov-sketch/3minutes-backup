@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { syncSdkAuthToken } from '@/lib/uploadFile';

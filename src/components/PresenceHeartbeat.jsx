@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { useEffect } from 'react';
 import { useCurrentProfile, useUpdateProfile } from '@/lib/useProfile';
 

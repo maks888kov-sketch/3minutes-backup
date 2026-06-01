@@ -1,3 +1,4 @@
+/* b44-full-sync 2026-06-01 */
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { getAuthErrorMessage } from '@/lib/authRedirect';
