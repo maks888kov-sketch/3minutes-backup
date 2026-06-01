@@ -51,7 +51,7 @@ export default function ProfilePhotoCard({
         />
       </AnimatePresence>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[55%] bg-gradient-to-t from-black/95 via-black/45 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[42%] bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
 
       {slides.length > 1 && (
         <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex gap-1 px-3">
@@ -130,15 +130,15 @@ export default function ProfilePhotoCard({
                 {slide.tags.map((tag, i) => (
                   <span
                     key={`${tag.label}-${i}`}
-                    className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md"
+                    className="inline-flex items-center gap-1 rounded-full bg-white/92 px-3 py-1.5 text-xs font-medium text-black/85 shadow-sm"
                   >
                     <span>{tag.emoji}</span>
                     <span>{tag.label}</span>
                   </span>
                 ))}
-                {!showName && slides.length > 1 && photoIndex < slides.length - 1 && (
-                  <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1.5 text-xs text-white/70 backdrop-blur-md">
-                    +{Math.max(0, slides.length - photoIndex - 1)}
+                {photoIndex === 0 && slides.length > 1 && (
+                  <span className="inline-flex items-center rounded-full bg-white/75 px-2.5 py-1.5 text-xs font-medium text-black/70">
+                    +{Math.max(0, slides.length - 1)}
                   </span>
                 )}
               </div>

@@ -359,27 +359,27 @@ export default function Discover() {
         )}
 
           {remaining.length > 0 && (
-            <div className="pointer-events-none absolute bottom-4 left-0 right-0 z-30 flex items-center justify-center gap-5 px-4">
+            <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-30 flex items-center justify-center gap-4 px-6">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('left')}
-                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-black/45 backdrop-blur-md"
+                className="pointer-events-auto flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-[#3a3a3a]/90 shadow-lg"
               >
-                <X className="h-7 w-7 text-red-400" />
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={() => handleSwipe('right')}
-                className="pointer-events-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full gradient-primary neon-glow-pink"
-              >
-                <Heart className="h-9 w-9 text-white" fill="white" />
+                <X className="h-6 w-6 text-white" strokeWidth={2.5} />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('super')}
-                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/90"
+                className="pointer-events-auto flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-[#c9a87c] shadow-lg"
               >
-                <Star className="h-7 w-7 text-amber-500" fill="currentColor" />
+                <Star className="h-6 w-6 text-white" fill="white" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => handleSwipe('right')}
+                className="pointer-events-auto flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-white shadow-lg"
+              >
+                <Heart className="h-6 w-6 text-black" fill="black" />
               </motion.button>
             </div>
           )}

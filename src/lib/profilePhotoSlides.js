@@ -44,29 +44,34 @@ function buildAutoSlides(profile, photos) {
     }
 
     if (index === 0) {
-      return {
-        url,
+      return       {
         showName: true,
         tags: [
           { emoji: goal.emoji, label: goal.label },
           profile.city ? { emoji: '📍', label: profile.city } : null,
         ].filter(Boolean),
         text: profile.bio ? `${profile.bio.slice(0, 72)}${profile.bio.length > 72 ? '…' : ''}` : '',
+        extraTagCount: Math.max(0, interests.length + (profile.height_cm ? 1 : 0)),
       };
     }
 
     const interestStart = (index - 1) * 3;
     const chunk = interests.slice(interestStart, interestStart + 4);
     const isLast = index === count - 1;
+    const extraTags = [];
+
+    if (isLast && profile.height_cm) {
+      extraTags.push({ emoji: '📏', label: `${profile.height_cm} см` });
+    }
 
     return {
       url,
       showName: isLast,
-      tags: chunk.length > 0 ? chunk : [
+      tags: [...(chunk.length > 0 ? chunk : [
         profile.city ? { emoji: '📍', label: profile.city } : null,
         { emoji: goal.emoji, label: goal.label },
-      ].filter(Boolean),
-      text: isLast ? (profile.bio || '') : (interests[interestStart]?.label ? `Увлечение: ${interests[interestStart].emoji} ${interests[interestStart].label}` : ''),
+      ].filter(Boolean)), ...extraTags],
+      text: isLast ? (profile.bio || '') : (interests[interestStart]?.label ? `${interests[interestStart].emoji} ${interests[interestStart].label}` : ''),
     };
   });
 }
