@@ -82,13 +82,13 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
         <img
           src={currentPhoto}
           alt={profile.name}
-          className="absolute inset-0 z-[1] h-full w-full object-contain object-center"
+          className="absolute inset-0 z-[1] h-full w-full scale-[1.06] object-contain object-center"
           draggable={false}
           referrerPolicy="no-referrer"
           onError={handlePhotoError}
         />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[42%] bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[38%] bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
         {photos.length > 1 && (
           <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex justify-center gap-1 px-4">

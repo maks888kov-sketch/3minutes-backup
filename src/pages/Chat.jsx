@@ -25,12 +25,13 @@ import { uploadPublicFile } from '@/lib/uploadFile';
 import { isProfileBlocked } from '@/lib/moderation';
 import { useModerationActions } from '@/lib/useModeration';
 import ReportBlockSheet from '@/components/chat/ReportBlockSheet';
+import ChatProfileSheet from '@/components/chat/ChatProfileSheet';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   ArrowLeft, Send, Video, Image, Mic, Lock,
-  CheckCheck, Loader2, Clock, X, Flag
+  CheckCheck, Loader2, Clock, X, Flag, Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -70,6 +71,7 @@ export default function Chat() {
   const cancelRecordingRef = useRef(false);
   const recordingTimerRef = useRef(null);
   const [showReportSheet, setShowReportSheet] = useState(false);
+  const [showProfileSheet, setShowProfileSheet] = useState(false);
   const { blockUser, submitReport } = useModerationActions();
   const moderationBusy = blockUser.isPending || submitReport.isPending;
 
@@ -521,19 +523,35 @@ export default function Chat() {
         <button type="button" onClick={() => navigate('/chats')} className="p-1.5">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-          <img src={otherPhoto} alt="" className="w-full h-full object-cover" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="font-semibold truncate">{otherProfile?.name || '...'}</h2>
-          <div className="flex items-center gap-1">
-            {otherOnline && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
-            <span className="text-xs text-muted-foreground">
-              {otherOnline ? 'онлайн' : 'был(а) недавно'}
-            </span>
+        <button
+          type="button"
+          onClick={() => otherProfile && setShowProfileSheet(true)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          aria-label="Открыть профиль"
+        >
+          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
+            <img src={otherPhoto} alt="" className="h-full w-full object-cover" />
           </div>
-        </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate font-semibold">{otherProfile?.name || '...'}</h2>
+            <div className="flex items-center gap-1">
+              {otherOnline && <div className="h-1.5 w-1.5 rounded-full bg-green-500" />}
+              <span className="text-xs text-muted-foreground">
+                {otherOnline ? 'онлайн · профиль' : 'был(а) недавно · профиль'}
+              </span>
+            </div>
+          </div>
+        </button>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowProfileSheet(true)}
+            disabled={!otherProfile}
+            className="rounded-xl p-2.5 glass disabled:opacity-50"
+            aria-label="Информация о профиле"
+          >
+            <Info className="h-5 w-5 text-primary" />
+          </button>
           <button
             type="button"
             onClick={() => setShowReportSheet(true)}
@@ -795,6 +813,13 @@ export default function Chat() {
       )}
 
       <AnimatePresence>
+        {showProfileSheet && (
+          <ChatProfileSheet
+            open={showProfileSheet}
+            onClose={() => setShowProfileSheet(false)}
+            profile={otherProfile}
+          />
+        )}
         {showReportSheet && (
           <ReportBlockSheet
             open={showReportSheet}

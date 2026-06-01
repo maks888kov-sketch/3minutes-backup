@@ -148,7 +148,7 @@ export default function Discover() {
           </div>
         </div>
         <div className="relative min-h-0 flex-1 px-4 pb-2">
-          <div className="relative mx-auto h-full w-full max-w-[380px] min-h-[280px]">
+          <div className="relative mx-auto h-full w-full max-w-[420px] min-h-[280px]">
             <DiscoverSkeleton />
           </div>
         </div>
@@ -267,7 +267,7 @@ export default function Discover() {
 
       {/* Cards */}
       <div className="relative min-h-0 flex-1 px-4 pb-2">
-        <div className="relative mx-auto h-full w-full max-w-[380px] min-h-[280px]">
+        <div className="relative mx-auto h-full w-full max-w-[420px] min-h-[280px]">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
             <motion.div
