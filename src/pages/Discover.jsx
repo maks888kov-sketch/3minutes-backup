@@ -147,8 +147,8 @@ export default function Discover() {
             <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
           </div>
         </div>
-        <div className="relative min-h-0 flex-1 px-4 pb-2">
-          <div className="relative mx-auto h-full w-full max-w-[420px] min-h-[280px]">
+        <div className="relative min-h-0 flex-1 px-2 pb-[5.5rem]">
+          <div className="relative h-full w-full">
             <DiscoverSkeleton />
           </div>
         </div>
@@ -265,9 +265,9 @@ export default function Discover() {
         </div>
       )}
 
-      {/* Cards */}
-      <div className="relative min-h-0 flex-1 px-4 pb-2">
-        <div className="relative mx-auto h-full w-full max-w-[420px] min-h-[280px]">
+      {/* Cards — на весь экран, как в референсе */}
+      <div className="relative min-h-0 flex-1 px-2 pb-[5.5rem]">
+        <div className="relative h-full w-full">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
             <motion.div
@@ -357,35 +357,34 @@ export default function Discover() {
             ))}
           </motion.div>
         )}
+
+          {remaining.length > 0 && (
+            <div className="pointer-events-none absolute bottom-4 left-0 right-0 z-30 flex items-center justify-center gap-5 px-4">
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => handleSwipe('left')}
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-black/45 backdrop-blur-md"
+              >
+                <X className="h-7 w-7 text-red-400" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => handleSwipe('right')}
+                className="pointer-events-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full gradient-primary neon-glow-pink"
+              >
+                <Heart className="h-9 w-9 text-white" fill="white" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => handleSwipe('super')}
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/90"
+              >
+                <Star className="h-7 w-7 text-amber-500" fill="currentColor" />
+              </motion.button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Action buttons */}
-      {remaining.length > 0 && (
-        <div className="relative z-20 flex flex-shrink-0 items-center justify-center gap-4 px-6 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] pt-1">
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => handleSwipe('left')}
-            className="w-16 h-16 rounded-full glass flex items-center justify-center"
-          >
-            <X className="w-7 h-7 text-red-400" />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => handleSwipe('right')}
-            className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center neon-glow-pink"
-          >
-            <Heart className="w-9 h-9 text-white" fill="white" />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => handleSwipe('super')}
-            className="w-16 h-16 rounded-full glass flex items-center justify-center"
-          >
-            <Star className="w-7 h-7 text-yellow-400" fill="currentColor" />
-          </motion.button>
-        </div>
-      )}
 
       {/* Match Popup */}
       <AnimatePresence>

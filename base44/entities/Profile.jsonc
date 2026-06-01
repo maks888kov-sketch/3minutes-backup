@@ -98,6 +98,27 @@
     "city_filter": {
       "type": "string",
       "default": ""
+    },
+    "photo_slides": {
+      "type": "array",
+      "description": "Per-photo overlay: tags and text for each photo index",
+      "items": {
+        "type": "object",
+        "properties": {
+          "showName": { "type": "boolean" },
+          "text": { "type": "string" },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "emoji": { "type": "string" },
+                "label": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "required": [
