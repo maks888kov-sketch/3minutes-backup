@@ -138,6 +138,17 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+/* Discover — портретная карточка (MosDate): высота задаёт ширину 3:4 */
+.discover-card-frame {
+  position: relative;
+  height: 100%;
+  width: auto;
+  aspect-ratio: 3 / 4;
+  max-width: min(100%, 440px);
+  max-height: min(100%, calc(100dvh - 12.5rem));
+  margin-inline: auto;
+}
+
 /* Chat input — выше края экрана на телефонах */
 .chat-composer {
   flex-shrink: 0;

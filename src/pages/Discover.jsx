@@ -13,7 +13,7 @@ import DiscoverSkeleton from '@/components/DiscoverSkeleton';
 import { countActiveFilters, getFilterSummary } from '@/lib/discoverFilters';
 import { isTestBotId, isTestBotsEnabled, TEST_BOT_PROFILES } from '@/lib/testBots';
 import { recordTestBotSwipe, resetTestBotState } from '@/lib/testBotStore';
-import { Heart, X, Star, Sparkles, Flame, RefreshCw, SlidersHorizontal, Bot } from 'lucide-react';
+import { Heart, X, Star, Sparkles, Flame, RefreshCw, SlidersHorizontal } from 'lucide-react';
 export default function Discover() {
   const { data: profile, isLoading: profileLoading } = useCurrentProfile();
   const { data: discoverData, isLoading, refetch } = useDiscoverProfiles(profile);
@@ -147,8 +147,8 @@ export default function Discover() {
             <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
           </div>
         </div>
-        <div className="relative min-h-0 flex-1 px-2 pb-[5.5rem]">
-          <div className="relative h-full w-full">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
+          <div className="discover-card-frame">
             <DiscoverSkeleton />
           </div>
         </div>
@@ -246,18 +246,15 @@ export default function Discover() {
       )}
 
       {isTestBotsEnabled() && (
-        <div className="relative z-20 mb-2 flex-shrink-0 px-5">
-          <div className="glass flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
-            <Bot className="w-4 h-4 text-primary flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium">Тест-боты включены</p>
-              <p className="text-muted-foreground text-[10px]">
-                {testBotsInFeed > 0 ? `${testBotsInFeed} в ленте · ` : ''}{testBotsMatchBackCount} ботов ответят взаимностью
-              </p>
-            </div>
+        <div className="relative z-20 mb-1 flex-shrink-0 px-5">
+          <div className="flex items-center justify-between gap-2 rounded-full px-3 py-1.5 text-[10px] glass">
+            <span className="text-muted-foreground truncate">
+              🤖 Тест-боты · {testBotsInFeed > 0 ? `${testBotsInFeed} в ленте` : 'включены'}
+            </span>
             <button
+              type="button"
               onClick={handleResetTestBots}
-              className="text-[10px] text-primary whitespace-nowrap hover:underline"
+              className="flex-shrink-0 text-primary hover:underline"
             >
               Сбросить
             </button>
@@ -265,9 +262,9 @@ export default function Discover() {
         </div>
       )}
 
-      {/* Cards — на весь экран, как в референсе */}
-      <div className="relative min-h-0 flex-1 px-2 pb-[5.5rem]">
-        <div className="relative h-full w-full">
+      {/* Cards — портрет 3:4 по высоте экрана (MosDate) */}
+      <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
+        <div className="discover-card-frame">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
             <motion.div
@@ -342,7 +339,7 @@ export default function Discover() {
           </div>
         ) : (
           <motion.div
-            className="relative h-full"
+            className="absolute inset-0"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}

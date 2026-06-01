@@ -41,7 +41,7 @@ export default function ProfilePhotoCard({
           key={slide?.url}
           src={slide?.url}
           alt={profile?.name || ''}
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_18%]"
           referrerPolicy="no-referrer"
           initial={{ opacity: 0.85, scale: 1.02 }}
           animate={{ opacity: 1, scale: 1 }}
