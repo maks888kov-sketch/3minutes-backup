@@ -14,9 +14,10 @@ alwaysApply: true
 ## Репозиторий проекта
 
 - Папка: `c:\MaxPro\awesome-three-minute-spark\awesome-three-minute-spark`
-- Remote: `https://github.com/maks888kov-sketch/3minutes.git`
+- Remote (backup): `https://github.com/maks888kov-sketch/3minutes-backup.git`
+- Remote (Base44, после создания в Base44): `https://github.com/maks888kov-sketch/3minutes.git`
 - Ветка: `main`
-- Проверка на GitHub: https://github.com/maks888kov-sketch/3minutes
+- Проверка backup: https://github.com/maks888kov-sketch/3minutes-backup
 
 ## Когда выполнять
 
@@ -53,7 +54,14 @@ alwaysApply: true
    git push origin main
    ```
 
-6. Проверить успех:
+6. Отправить на backup и (если есть) в Base44-репо:
+   ```powershell
+   git push origin main
+   git push https://github.com/maks888kov-sketch/3minutes.git main
+   ```
+   Второй push — только если репозиторий `3minutes` уже создан в Base44 (не путать с redirect на backup).
+
+7. Проверить успех:
    ```powershell
    git status
    ```
