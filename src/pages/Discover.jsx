@@ -147,7 +147,7 @@ export default function Discover() {
             <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
           </div>
         </div>
-        <div className="relative mx-4 mb-2 min-h-0 flex-1">
+        <div className="relative mx-auto mb-2 flex min-h-0 w-full max-w-md flex-1 justify-center px-2">
           <DiscoverSkeleton />
         </div>
       </div>
@@ -263,8 +263,8 @@ export default function Discover() {
         </div>
       )}
 
-      {/* Cards */}
-      <div className="relative mx-4 mb-2 min-h-0 flex-1">
+      {/* Cards — портретная карточка по центру */}
+      <div className="relative mx-auto mb-2 flex min-h-0 w-full max-w-md flex-1 justify-center px-2">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
             <motion.div
