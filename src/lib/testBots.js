@@ -91,7 +91,11 @@ export const TEST_BOT_PROFILES = [
     is_premium: false,
     profile_complete: true,
     willMatchBack: false,
-    photos: ['https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=600&h=800&fit=crop'],
+    photos: [
+      'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&h=1200&fit=crop',
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&h=1200&fit=crop',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&h=1200&fit=crop',
+    ],
     bio: 'Разработчик днём, геймер ночью',
     interests: ['🎮 Игры', '🎬 Кино', '🎵 Музыка'],
   },

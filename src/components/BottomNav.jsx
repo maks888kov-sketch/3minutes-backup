@@ -16,7 +16,7 @@ export default function BottomNav() {
   const location = useLocation();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom">
+    <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom bg-[#0d0b14]">
       <div className="glass-strong border-t border-white/5">
         <div className="flex items-center justify-around px-2 py-2 max-w-lg mx-auto">
           {navItems.map((item) => {

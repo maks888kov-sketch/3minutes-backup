@@ -51,7 +51,7 @@ export default function Matches() {
   const hasLikesOnly = matches.length === 0 && likedMe.length > 0;
 
   return (
-    <div className="min-h-screen pb-24 safe-top">
+    <div className="h-full overflow-y-auto pb-24 safe-top">
       <div className="px-5 pt-5 pb-2">
         <h1 className="text-2xl font-bold">Пары</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Взаимные симпатии</p>

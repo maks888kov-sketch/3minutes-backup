@@ -42,6 +42,19 @@ export function resetTestBotState(profileId) {
   writeAll(all);
 }
 
+/** Убрать тест-чат из списка (как «удалить переписку») */
+export function removeTestBotMatch(profileId, matchId) {
+  if (!profileId || !matchId) return;
+  const state = getState(profileId);
+  state.matches = (state.matches || []).filter((m) => m.id !== matchId);
+  if (state.messages?.[matchId]) {
+    const next = { ...state.messages };
+    delete next[matchId];
+    state.messages = next;
+  }
+  saveState(profileId, state);
+}
+
 export function getAvailableTestBots(profileId, filters, blockedIds = []) {
   const state = getState(profileId);
   const passed = new Set(state.passed || []);

@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import Chats from './pages/Chats';
 import Feedback from './pages/Feedback';
 import Login from './pages/Login';
+import Logout from './pages/Logout';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
@@ -24,7 +25,7 @@ import PageNotFound from './lib/PageNotFound';
 import { Loader2 } from 'lucide-react';
 
 const AUTH_ROUTES = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
-const PUBLIC_ROUTES = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/onboarding'];
+const PUBLIC_ROUTES = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/onboarding', '/logout'];
 
 function HomeRedirect() {
   const { isAuthenticated, authChecked, isLoadingAuth } = useAuth();
@@ -92,6 +93,7 @@ export default function AuthenticatedApp() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/logout" element={<Logout />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />

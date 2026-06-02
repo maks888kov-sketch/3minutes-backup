@@ -165,7 +165,7 @@ export default function Settings() {
   const photo = photoPreview || profile?.photos?.[0] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop';
 
   return (
-    <div className="min-h-screen pb-28 safe-top relative">
+    <div className="h-full overflow-y-auto pb-28 safe-top relative">
       {/* bg glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full opacity-5"

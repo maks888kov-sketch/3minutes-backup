@@ -61,7 +61,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-12 safe-top safe-bottom relative overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col px-6 py-12 safe-top safe-bottom relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-32 w-64 h-64 rounded-full bg-primary/20 blur-[100px]" />
         <div className="absolute bottom-1/4 -right-32 w-64 h-64 rounded-full bg-accent/20 blur-[100px]" />

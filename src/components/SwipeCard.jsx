@@ -3,12 +3,25 @@ import { useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import ProfilePhotoCard from '@/components/profile/ProfilePhotoCard';
 
-export default function SwipeCard({ profile, onSwipe, isTop }) {
+export default function SwipeCard({
+  profile,
+  onSwipe,
+  isTop,
+  photoIndex: controlledPhotoIndex,
+  onPhotoIndexChange,
+  infoPlacement = 'overlay',
+}) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-12, 12]);
   const likeOpacity = useTransform(x, [0, 100], [0, 1]);
   const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
-  const [photoIndex, setPhotoIndex] = useState(0);
+  const [internalPhotoIndex, setInternalPhotoIndex] = useState(0);
+
+  const photoIndex = isTop && controlledPhotoIndex !== undefined ? controlledPhotoIndex : internalPhotoIndex;
+  const setPhotoIndex = (next) => {
+    if (isTop && onPhotoIndexChange) onPhotoIndexChange(next);
+    else setInternalPhotoIndex(next);
+  };
 
   const cardGlow = useTransform(x, [-120, 0, 120], [
     '0 0 50px rgba(239,68,68,0.35)',
@@ -43,7 +56,8 @@ export default function SwipeCard({ profile, onSwipe, isTop }) {
           photoIndex={photoIndex}
           onPhotoIndexChange={setPhotoIndex}
           enablePhotoNav={isTop}
-          extraBottomPadding
+          infoPlacement={infoPlacement}
+          extraBottomPadding={infoPlacement !== 'photo-only'}
         >
           <motion.div
             style={{ opacity: likeOpacity }}

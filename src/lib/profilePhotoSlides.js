@@ -30,19 +30,12 @@ function buildAutoSlides(profile, photos) {
   const count = photos.length;
 
   return photos.map((url, index) => {
-    if (count === 1) {
-      return {
-        url,
-        showName: true,
-        tags: [
-          { emoji: goal.emoji, label: goal.label },
-          profile.city ? { emoji: '📍', label: profile.city } : null,
-          ...interests.slice(0, 2),
-        ].filter(Boolean),
-        text: profile.bio || '',
-      };
-    }
+    const isLast = index === count - 1;
+    const bioShort = profile.bio
+      ? `${profile.bio.slice(0, 48)}${profile.bio.length > 48 ? '…' : ''}`
+      : '';
 
+    /* Фото 1: лицо не закрываем — только имя + цель + город */
     if (index === 0) {
       return {
         url,
@@ -51,27 +44,26 @@ function buildAutoSlides(profile, photos) {
           { emoji: goal.emoji, label: goal.label },
           profile.city ? { emoji: '📍', label: profile.city } : null,
         ].filter(Boolean),
-        text: profile.bio ? `${profile.bio.slice(0, 72)}${profile.bio.length > 72 ? '…' : ''}` : '',
+        text: count > 1 ? '' : bioShort,
+        hint: count > 1 ? 'Листай фото →' : '',
       };
     }
 
     const interestStart = (index - 1) * 3;
-    const chunk = interests.slice(interestStart, interestStart + 4);
-    const isLast = index === count - 1;
+    const chunk = interests.slice(interestStart, interestStart + 3);
     const extraTags = [];
 
     if (isLast && profile.height_cm) {
       extraTags.push({ emoji: '📏', label: `${profile.height_cm} см` });
     }
 
+    /* Следующие фото: интересы; био только на последнем */
     return {
       url,
-      showName: isLast,
-      tags: [...(chunk.length > 0 ? chunk : [
-        profile.city ? { emoji: '📍', label: profile.city } : null,
-        { emoji: goal.emoji, label: goal.label },
-      ].filter(Boolean)), ...extraTags],
-      text: isLast ? (profile.bio || '') : (interests[interestStart]?.label ? `${interests[interestStart].emoji} ${interests[interestStart].label}` : ''),
+      showName: false,
+      tags: [...chunk, ...extraTags],
+      text: isLast ? bioShort : '',
+      hint: '',
     };
   });
 }
@@ -86,7 +78,8 @@ export function buildPhotoSlides(profile) {
         url,
         showName: custom.showName ?? index === 0,
         tags: (custom.tags || []).map(normalizeTag).filter((t) => t?.label),
-        text: custom.text || custom.hint || '',
+        text: custom.text || '',
+        hint: custom.hint || (index === 0 && photos.length > 1 ? 'Листай фото →' : ''),
       };
     });
   }

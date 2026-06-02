@@ -518,7 +518,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden bg-background">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
       <div className="glass-strong border-b border-white/5 px-3 py-3 safe-top flex items-center gap-3 z-10">
         <button type="button" onClick={() => navigate('/chats')} className="p-1.5">
           <ArrowLeft className="w-5 h-5" />

@@ -12,6 +12,7 @@ import {
   getTestBotMessages,
   isTestBotMatchId,
 } from '@/lib/testBotStore';
+import { blockChatAndHide, hideChat } from '@/lib/chatActions';
 
 export function useCurrentProfile() {
   return useQuery({
@@ -78,37 +79,44 @@ export function useDiscoverProfiles(currentProfile) {
     queryFn: async () => {
       if (!currentProfile) return { profiles: [], poolSize: 0 };
 
-      const allProfiles = await base44.entities.Profile.filter({ profile_complete: true });
-      const myLikes = await base44.entities.Like.filter({ from_profile_id: currentProfile.id });
-      const likedIds = new Set(myLikes.map((l) => l.to_profile_id));
-
       const blockedIds = getMergedBlockedIds(currentProfile);
-      const blockedSet = new Set(blockedIds);
-
-      const pool = allProfiles.filter((p) => {
-        if (p.id === currentProfile.id) return false;
-        if (blockedSet.has(p.id)) return false;
-        if (likedIds.has(p.id)) return false;
-        return true;
-      });
-
-      const profiles = pool
-        .filter((p) => profileMatchesFilters(p, filters))
-        .sort((a, b) => {
-          const scoreB = sharedInterestsCount(currentProfile.interests, b.interests);
-          const scoreA = sharedInterestsCount(currentProfile.interests, a.interests);
-          if (scoreB !== scoreA) return scoreB - scoreA;
-          return (isProfileOnline(b) ? 1 : 0) - (isProfileOnline(a) ? 1 : 0);
-        });
-
       const testBots = isTestBotsEnabled()
         ? getAvailableTestBots(currentProfile.id, filters, blockedIds)
         : [];
 
-      return {
-        profiles: [...profiles, ...testBots],
-        poolSize: pool.length + (isTestBotsEnabled() ? TEST_BOT_PROFILES.length : 0),
-      };
+      try {
+        const allProfiles = await base44.entities.Profile.filter({ profile_complete: true });
+        const myLikes = await base44.entities.Like.filter({ from_profile_id: currentProfile.id });
+        const likedIds = new Set(myLikes.map((l) => l.to_profile_id));
+
+        const blockedSet = new Set(blockedIds);
+
+        const pool = allProfiles.filter((p) => {
+          if (p.id === currentProfile.id) return false;
+          if (blockedSet.has(p.id)) return false;
+          if (likedIds.has(p.id)) return false;
+          return true;
+        });
+
+        const profiles = pool
+          .filter((p) => profileMatchesFilters(p, filters))
+          .sort((a, b) => {
+            const scoreB = sharedInterestsCount(currentProfile.interests, b.interests);
+            const scoreA = sharedInterestsCount(currentProfile.interests, a.interests);
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return (isProfileOnline(b) ? 1 : 0) - (isProfileOnline(a) ? 1 : 0);
+          });
+
+        return {
+          profiles: [...profiles, ...testBots],
+          poolSize: pool.length + (isTestBotsEnabled() ? TEST_BOT_PROFILES.length : 0),
+        };
+      } catch {
+        return {
+          profiles: testBots,
+          poolSize: testBots.length,
+        };
+      }
     },
     enabled: !!currentProfile?.id,
   });
@@ -123,9 +131,11 @@ export function useMatches(profileId, blockedIds = []) {
       if (!profileId) return [];
       const matchesA = await base44.entities.Match.filter({ profile_a_id: profileId });
       const matchesB = await base44.entities.Match.filter({ profile_b_id: profileId });
+      const isActiveMatch = (m) => m.status !== 'ended' && m.status !== 'blocked';
+
       const real = [...matchesA, ...matchesB].filter((m) => {
         const otherId = getOtherProfileId(m, profileId);
-        return !blockedSet.has(otherId);
+        return isActiveMatch(m) && !blockedSet.has(otherId);
       });
       const test = profileId ? getTestBotMatches(profileId).filter((m) => {
         const otherId = getOtherProfileId(m, profileId);
@@ -180,10 +190,12 @@ export function useChatList(profileId, blockedIds = []) {
       const matchesA = await base44.entities.Match.filter({ profile_a_id: profileId });
       const matchesB = await base44.entities.Match.filter({ profile_b_id: profileId });
       const test = profileId ? getTestBotMatches(profileId) : [];
+      const isActiveMatch = (m) => m.status !== 'ended' && m.status !== 'blocked';
+
       const matches = [...test, ...matchesA, ...matchesB]
         .filter((m) => {
           const otherId = getOtherProfileId(m, profileId);
-          return !blockedSet.has(otherId);
+          return isActiveMatch(m) && !blockedSet.has(otherId);
         })
         .sort(
           (a, b) =>
@@ -254,5 +266,24 @@ export function useLikedMeProfiles(profileId) {
       return profiles.filter(Boolean);
     },
     enabled: !!profileId && likes.length > 0,
+  });
+}
+
+export function useHideChat(profileId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ match, block = false }) => {
+      if (block) {
+        await blockChatAndHide(profileId, match);
+      } else {
+        await hideChat(profileId, match);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatList'] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['discover'] });
+    },
   });
 }

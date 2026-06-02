@@ -82,6 +82,21 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100dvh;
+    background-color: #0d0b14;
+  }
+
+  #root {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground font-inter;
     -webkit-tap-highlight-color: transparent;
@@ -131,47 +146,45 @@
 
 /* Safe area for mobile */
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
 }
 
 .safe-top {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Discover — портретная карточка: телефон на всю ширину, ноутбук — крупнее */
-.discover-card-frame {
-  --discover-card-h: min(calc(100dvh - 11.5rem), 100%);
-  position: relative;
-  margin-inline: auto;
-  height: var(--discover-card-h);
-  width: min(calc(100% - 12px), calc(var(--discover-card-h) * 0.75), 520px);
-  max-width: 100%;
-  flex-shrink: 0;
-}
-
-@media (min-width: 640px) {
-  .discover-card-frame {
-    --discover-card-h: min(calc(100dvh - 10rem), 86vh, 780px);
-    width: min(calc(100% - 32px), calc(var(--discover-card-h) * 0.72), 580px);
-  }
-}
-
-@media (min-width: 1024px) {
-  .discover-card-frame {
-    --discover-card-h: min(calc(100dvh - 9rem), 90vh, 860px);
-    width: min(640px, calc(var(--discover-card-h) * 0.72), calc(100vw - 80px));
-  }
-}
-
+/* Discover — ширина как в MosDate: телефон/планшет почти на весь экран */
 .discover-feed-zone {
   width: 100%;
-  max-width: 100%;
+  max-width: none;
+  margin-inline: auto;
+  padding-inline: 4px;
 }
 
-@media (min-width: 640px) {
+.discover-card-frame {
+  position: relative;
+  margin-inline: auto;
+  width: calc(100% - 6px);
+  max-width: 100%;
+  /* Явная высота: при только absolute-детях aspect-ratio даёт 0px на мобильных */
+  height: min(calc((100vw - 6px) * 4 / 3), calc(100dvh - 17rem), 100%);
+  min-height: min(58vw, calc(100dvh - 17rem));
+  max-height: calc(100dvh - 17rem);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Только широкий десктоп — ограничиваем, чтобы не растягивать на большом мониторе */
+@media (min-width: 1200px) {
   .discover-feed-zone {
-    max-width: 640px;
-    margin-inline: auto;
+    max-width: 720px;
+  }
+
+  .discover-card-frame {
+    width: min(680px, calc(100% - 12px));
+    height: min(calc((100vw - 12px) * 4 / 3), 880px, calc(100dvh - 9rem));
+    min-height: 480px;
+    max-height: min(calc(100dvh - 9rem), 880px);
   }
 }
 

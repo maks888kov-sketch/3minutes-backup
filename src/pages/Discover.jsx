@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentProfile, useDiscoverProfiles, useOnlineCount } from '@/lib/useProfile';
 import { showNotification } from '@/components/AppNotifications';
 import SwipeCard from '@/components/SwipeCard';
+import DiscoverCardCaption from '@/components/discover/DiscoverCardCaption';
 import MatchPopup from '@/components/MatchPopup';
 import DailyPicks from '@/components/DailyPicks';
 import DiscoverFiltersSheet from '@/components/discover/DiscoverFiltersSheet';
@@ -21,6 +22,7 @@ export default function Discover() {
   const poolSize = discoverData?.poolSize ?? 0;
   const { data: onlineCount = 0 } = useOnlineCount();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [captionPhotoIndex, setCaptionPhotoIndex] = useState(0);
   const [matchPopup, setMatchPopup] = useState(null);
   const [showDailyPicks, setShowDailyPicks] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -39,6 +41,16 @@ export default function Discover() {
     profile?.city_filter,
     profile?.looking_for,
   ]);
+
+  useEffect(() => {
+    if (profiles.length > 0 && currentIndex >= profiles.length) {
+      setCurrentIndex(0);
+    }
+  }, [profiles.length, currentIndex]);
+
+  useEffect(() => {
+    setCaptionPhotoIndex(0);
+  }, [profiles[currentIndex]?.id]);
 
   const handleRefresh = useCallback(async () => {
     setPullRefreshing(true);
@@ -137,7 +149,7 @@ export default function Discover() {
 
   if (profileLoading || isLoading) {
     return (
-      <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden safe-top relative">
+      <div className="flex h-full flex-col overflow-hidden safe-top relative">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[150px]" />
         </div>
@@ -149,7 +161,9 @@ export default function Discover() {
         </div>
         <div className="discover-feed-zone relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
           <div className="discover-card-frame">
-            <DiscoverSkeleton />
+            <div className="absolute inset-0">
+              <DiscoverSkeleton />
+            </div>
           </div>
         </div>
       </div>
@@ -157,6 +171,7 @@ export default function Discover() {
   }
 
   const remaining = profiles.slice(currentIndex);
+  const topProfile = remaining[0];
   const testBotsInFeed = remaining.filter((p) => isTestBotId(p.id)).length;
   const testBotsMatchBackCount = TEST_BOT_PROFILES.filter((b) => b.willMatchBack).length;
 
@@ -176,7 +191,7 @@ export default function Discover() {
 
   return (
     <div
-      className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden safe-top relative"
+      className="flex h-full flex-col overflow-hidden safe-top relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -265,9 +280,8 @@ export default function Discover() {
 
       {/* Cards */}
       <div className="discover-feed-zone relative flex min-h-0 flex-1 flex-col items-center justify-center px-2 pb-[5.25rem]">
-        <div className="discover-card-frame">
         {remaining.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">
+          <div className="flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
             <motion.div
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -336,52 +350,68 @@ export default function Discover() {
                 <RefreshCw className="w-4 h-4" />
                 Обновить рекомендации
               </motion.button>
+              {isTestBotsEnabled() && currentIndex > 0 && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={handleResetTestBots}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold glass text-foreground"
+                >
+                  Вернуть тест-ботов в ленту
+                </motion.button>
+              )}
             </div>
           </div>
         ) : (
-          <motion.div
-            className="absolute inset-0"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
-          >
-            {remaining.slice(0, 3).reverse().map((p, i, arr) => (
-              <SwipeCard
-                key={p.id}
-                profile={p}
-                isTop={i === arr.length - 1}
-                onSwipe={handleSwipe}
-              />
-            ))}
-          </motion.div>
-        )}
+          <div className="flex w-full max-w-md min-h-0 flex-1 flex-col items-center justify-center gap-2">
+            <div className="discover-card-frame relative w-full shrink-0">
+              <motion.div
+                className="absolute inset-0 z-10"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+              >
+                {remaining.slice(0, 3).reverse().map((p, i, arr) => (
+                  <SwipeCard
+                    key={p.id}
+                    profile={p}
+                    isTop={i === arr.length - 1}
+                    onSwipe={handleSwipe}
+                    infoPlacement="photo-only"
+                    photoIndex={i === arr.length - 1 ? captionPhotoIndex : 0}
+                    onPhotoIndexChange={i === arr.length - 1 ? setCaptionPhotoIndex : undefined}
+                  />
+                ))}
+              </motion.div>
+            </div>
 
-          {remaining.length > 0 && (
-            <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-30 flex items-center justify-center gap-4 px-6">
+            <DiscoverCardCaption profile={topProfile} photoIndex={captionPhotoIndex} />
+
+            <div className="flex w-full items-center justify-center gap-4 px-4 py-1">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('left')}
-                className="pointer-events-auto flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-[#3a3a3a]/90 shadow-lg"
+                className="flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-[#3a3a3a]/90 shadow-lg"
               >
                 <X className="h-6 w-6 text-white" strokeWidth={2.5} />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('super')}
-                className="pointer-events-auto flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-[#c9a87c] shadow-lg"
+                className="flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-[#c9a87c] shadow-lg"
               >
                 <Star className="h-6 w-6 text-white" fill="white" />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('right')}
-                className="pointer-events-auto flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-white shadow-lg"
+                className="flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-white shadow-lg"
               >
                 <Heart className="h-6 w-6 text-black" fill="black" />
               </motion.button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Match Popup */}
