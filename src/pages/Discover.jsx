@@ -147,7 +147,7 @@ export default function Discover() {
             <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
           </div>
         </div>
-        <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
+        <div className="discover-feed-zone relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
           <div className="discover-card-frame">
             <DiscoverSkeleton />
           </div>
@@ -201,15 +201,15 @@ export default function Discover() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="relative z-20 flex flex-shrink-0 items-center justify-between px-5 py-3">
+      <div className="relative z-20 flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-5 sm:py-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
+          <h1 className="text-lg font-bold gradient-text sm:text-xl">3Minutes</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <button
             onClick={() => setShowFilters(true)}
-            className="relative flex items-center gap-1.5 glass rounded-xl px-3 py-2"
+            className="relative flex items-center gap-1.5 glass rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2"
           >
             <SlidersHorizontal className="w-4 h-4 text-primary" />
             <span className="text-xs font-medium">Фильтры</span>
@@ -220,13 +220,14 @@ export default function Discover() {
               </span>
             )}
           </button>
-          <div className="flex items-center gap-1.5 glass rounded-xl px-3 py-2">
+          <span className="text-[10px] font-medium text-green-400 sm:hidden">{onlineCount} онл.</span>
+          <div className="hidden items-center gap-1.5 glass rounded-xl px-3 py-2 sm:flex">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs font-medium text-green-400">{onlineCount} онлайн</span>
           </div>
           <button
             onClick={() => setShowDailyPicks(true)}
-            className="flex items-center gap-1.5 glass rounded-xl px-3 py-2"
+            className="hidden items-center gap-1.5 glass rounded-xl px-3 py-2 sm:flex"
           >
             <Flame className="w-4 h-4 text-orange-400" />
             <span className="text-xs font-medium text-orange-400">Подбор</span>
@@ -262,8 +263,8 @@ export default function Discover() {
         </div>
       )}
 
-      {/* Cards — портрет 3:4 по высоте экрана (MosDate) */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
+      {/* Cards */}
+      <div className="discover-feed-zone relative flex min-h-0 flex-1 flex-col items-center justify-center px-2 pb-[5.25rem]">
         <div className="discover-card-frame">
         {remaining.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-5">

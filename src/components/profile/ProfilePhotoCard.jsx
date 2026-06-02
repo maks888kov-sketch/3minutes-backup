@@ -41,7 +41,7 @@ export default function ProfilePhotoCard({
           key={slide?.url}
           src={slide?.url}
           alt={profile?.name || ''}
-          className="absolute inset-0 h-full w-full object-cover object-[50%_18%]"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_12%]"
           referrerPolicy="no-referrer"
           initial={{ opacity: 0.85, scale: 1.02 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -51,7 +51,7 @@ export default function ProfilePhotoCard({
         />
       </AnimatePresence>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[42%] bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[38%] bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
       {slides.length > 1 && (
         <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex gap-1 px-3">
