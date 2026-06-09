@@ -2,20 +2,23 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import AddToHomeScreenHint from './AddToHomeScreenHint';
-
-const hiddenNavRoutes = ['/onboarding', '/profile-setup', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/chat/', '/video-call', '/feedback'];
+import { HIDDEN_NAV_PREFIXES, matchesRoutePrefix } from '@/lib/appRoutes';
 
 export default function Layout() {
   const location = useLocation();
-  const hideNav = hiddenNavRoutes.some(r => location.pathname.startsWith(r));
+  const hideNav = matchesRoutePrefix(location.pathname, HIDDEN_NAV_PREFIXES);
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#0d0b14]">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#121212]">
       <main className="relative min-h-0 flex-1 overflow-hidden">
         <Outlet />
       </main>
-      {!hideNav && <AddToHomeScreenHint />}
-      {!hideNav && <BottomNav />}
+      {!hideNav && (
+        <div className="relative z-40 flex-shrink-0">
+          <AddToHomeScreenHint />
+          <BottomNav />
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { syncSdkAuthToken } from '@/lib/uploadFile';
 import { isTestBotMatchId } from '@/lib/testBots';
 import { blockTestBotMatch } from '@/lib/testBotStore';
+import { isSelfMirrorMatchId, removeSelfMirrorMatch } from '@/lib/selfMirrorStore';
 import {
   addLocalBlock,
   removeLocalBlock,
@@ -44,7 +45,9 @@ export function useModerationActions() {
       await persistBlockedIds(myProfile.id, blockedIds);
 
       if (matchId) {
-        if (isTestBotMatchId(matchId)) {
+        if (isSelfMirrorMatchId(matchId)) {
+          removeSelfMirrorMatch(myProfile.id);
+        } else if (isTestBotMatchId(matchId)) {
           blockTestBotMatch(matchId);
         } else {
           syncSdkAuthToken();

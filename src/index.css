@@ -79,6 +79,10 @@
 }
 
 @layer base {
+  :root {
+    --bottom-nav-height: 4.25rem;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -87,7 +91,7 @@
   #root {
     height: 100%;
     min-height: 100dvh;
-    background-color: #0d0b14;
+    background-color: #121212;
   }
 
   #root {
@@ -153,28 +157,96 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Discover — ширина как в MosDate: телефон/планшет почти на весь экран */
-.discover-feed-zone {
-  width: 100%;
-  max-width: none;
-  margin-inline: auto;
-  padding-inline: 4px;
+/* Карточка фото — градиент снизу для читаемости текста */
+.card-photo-container {
+  position: relative;
 }
 
-.discover-card-frame {
-  position: relative;
-  margin-inline: auto;
-  width: calc(100% - 6px);
-  max-width: 100%;
-  /* Явная высота: при только absolute-детях aspect-ratio даёт 0px на мобильных */
-  height: min(calc((100vw - 6px) * 4 / 3), calc(100dvh - 17rem), 100%);
-  min-height: min(58vw, calc(100dvh - 17rem));
-  max-height: calc(100dvh - 17rem);
-  flex-shrink: 0;
+.card-photo-container::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-text-content {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 2;
+  color: #ffffff;
+}
+
+.card-text-content--with-actions {
+  bottom: 5.25rem;
+}
+
+/* Discover */
+.discover-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
-/* Только широкий десктоп — ограничиваем, чтобы не растягивать на большом мониторе */
+.top-filters-panel {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.discover-feed-zone {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.discover-card-frame,
+.user-card {
+  position: relative;
+  z-index: 10;
+  flex: 0 1 auto;
+  min-height: 0;
+  width: min(calc(100% - 8px), 100%);
+  max-width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 100%;
+  height: auto;
+  overflow: hidden;
+  border-radius: 1.5rem;
+}
+
+.discover-card-actions {
+  bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.discover-star-button {
+  background-color: #e2b97b;
+  color: #121212;
+}
+
 @media (min-width: 1200px) {
   .discover-feed-zone {
     max-width: 720px;
@@ -182,9 +254,7 @@
 
   .discover-card-frame {
     width: min(680px, calc(100% - 12px));
-    height: min(calc((100vw - 12px) * 4 / 3), 880px, calc(100dvh - 9rem));
-    min-height: 480px;
-    max-height: min(calc(100dvh - 9rem), 880px);
+    max-height: min(880px, 100%);
   }
 }
 

@@ -1,9 +1,16 @@
 /* b44-full-sync 2026-06-01 */
 import { isTestBotMatchId } from '@/lib/testBots';
+import { isSelfMirrorMatchId } from '@/lib/selfMirrorStore';
 
-export function isTestMatch(matchOrId) {
+/** Локальный тест-чат (боты или «зеркало» с собой) */
+export function isLocalMatch(matchOrId) {
   const id = typeof matchOrId === 'string' ? matchOrId : matchOrId?.id;
-  return isTestBotMatchId(id);
+  return isTestBotMatchId(id) || isSelfMirrorMatchId(id);
+}
+
+/** @deprecated используй isLocalMatch */
+export function isTestMatch(matchOrId) {
+  return isLocalMatch(matchOrId);
 }
 
 /** Первое видео-знакомство — 3 минуты */
@@ -28,4 +35,16 @@ export function getVideoConsent(match, profileId) {
 
 export function isVideoReady(match) {
   return !!(match?.video_consent_a && match?.video_consent_b);
+}
+
+/** Собеседник уже согласился на видео, а я ещё нет */
+export function needsMyVideoConsent(match, profileId) {
+  if (!match || !profileId || match.status === 'ended' || match.status === 'blocked') {
+    return false;
+  }
+  if (isVideoReady(match)) return false;
+  const isA = match.profile_a_id === profileId;
+  const myConsent = isA ? match.video_consent_a : match.video_consent_b;
+  const theirConsent = isA ? match.video_consent_b : match.video_consent_a;
+  return !!theirConsent && !myConsent;
 }

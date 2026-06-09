@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, Ban, X } from 'lucide-react';
 import { formatChatTime, isProfileOnline } from '@/lib/profileUtils';
+import { isSelfMirrorMatchId } from '@/lib/selfMirrorStore';
+import { isTestBotMatchId } from '@/lib/testBots';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +29,7 @@ export default function ChatListItem({
   onDelete,
   onBlock,
   isBusy = false,
+  videoRequestPending = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
@@ -39,6 +42,8 @@ export default function ChatListItem({
     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop';
   const displayName = other?.name || 'Пользователь';
   const displayAge = other?.age ? `, ${other.age}` : '';
+  const isSelfChat = isSelfMirrorMatchId(match?.id);
+  const isBotChat = isTestBotMatchId(match?.id);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -108,19 +113,29 @@ export default function ChatListItem({
               <h3 className={`truncate font-semibold ${unread > 0 ? 'text-foreground' : ''}`}>
                 {displayName}
                 {displayAge}
+                {isSelfChat && (
+                  <span className="ml-1 text-[10px] font-normal text-amber-400">· тест</span>
+                )}
+                {isBotChat && !isSelfChat && (
+                  <span className="ml-1 text-[10px] font-normal text-primary/80">· бот</span>
+                )}
               </h3>
               <span className="ml-2 flex-shrink-0 text-xs text-muted-foreground">
                 {formatChatTime(lastTime)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <p
-                className={`truncate text-sm ${
-                  unread > 0 ? 'font-medium text-foreground/80' : 'text-muted-foreground'
-                }`}
-              >
-                {lastMessage}
-              </p>
+                      <p
+                        className={`truncate text-sm ${
+                          videoRequestPending
+                            ? 'font-medium text-blue-400'
+                            : unread > 0
+                              ? 'font-medium text-foreground/80'
+                              : 'text-muted-foreground'
+                        }`}
+                      >
+                        {videoRequestPending ? '📹 Предлагает видео-встречу' : lastMessage}
+                      </p>
               {unread > 0 && (
                 <span className="ml-2 flex h-5 min-w-[20px] flex-shrink-0 items-center justify-center rounded-full gradient-primary px-1 text-[10px] font-bold text-white">
                   {unread}

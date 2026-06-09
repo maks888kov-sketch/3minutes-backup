@@ -3,9 +3,10 @@ import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isProfileOnline } from '@/lib/profileUtils';
 import { isTestBotId } from '@/lib/testBots';
+import { isSelfMirrorProfileId } from '@/lib/selfMirrorStore';
 import { buildPhotoSlides } from '@/lib/profilePhotoSlides';
 
-const MAX_VISIBLE_TAGS = 3;
+const MAX_TAGS = 2;
 
 export default function ProfilePhotoCard({
   profile,
@@ -16,12 +17,13 @@ export default function ProfilePhotoCard({
   rounded = true,
   className = '',
   extraBottomPadding = false,
-  infoPlacement = 'overlay',
+  infoPlacement = 'mosdate',
   children,
 }) {
   const slides = useMemo(() => buildPhotoSlides(profile), [profile]);
   const slide = slides[photoIndex] || slides[0];
   const online = isProfileOnline(profile);
+  const mosdate = infoPlacement === 'mosdate' || infoPlacement === 'overlay';
 
   const prevPhoto = (e) => {
     e?.stopPropagation?.();
@@ -33,35 +35,31 @@ export default function ProfilePhotoCard({
     if (photoIndex < slides.length - 1) onPhotoIndexChange(photoIndex + 1);
   };
 
-  const photoOnly = infoPlacement === 'photo-only';
-  const showName = !photoOnly && slide?.showName !== false && (photoIndex === 0 || slide?.showName);
-  const tags = slide?.tags || [];
-  const visibleTags = tags.slice(0, MAX_VISIBLE_TAGS);
-  const hiddenTagCount = tags.length - visibleTags.length;
-  const bottomPad = extraBottomPadding ? 'pb-[5.5rem]' : photoOnly ? 'pb-3' : 'pb-4';
+  const showName = slide?.showName !== false && (photoIndex === 0 || slide?.showName);
+  const tags = (slide?.tags || []).slice(0, MAX_TAGS);
+  const moreCount = slide?.moreTagsCount || 0;
+  const textContentClass = extraBottomPadding
+    ? 'card-text-content card-text-content--with-actions pt-6'
+    : 'card-text-content pt-8';
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden bg-black ${rounded ? 'rounded-3xl' : ''} ${className}`}
+      className={`card-photo-container relative h-full w-full overflow-hidden bg-black ${rounded ? 'rounded-3xl' : ''} ${className}`}
     >
       <AnimatePresence mode="wait">
         <motion.img
           key={slide?.url}
           src={slide?.url}
           alt={profile?.name || ''}
-          className="absolute inset-0 h-full w-full object-cover object-[50%_18%]"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_20%]"
           referrerPolicy="no-referrer"
-          initial={{ opacity: 0.85, scale: 1.02 }}
+          initial={{ opacity: 0.9, scale: 1.01 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0.85, scale: 1.01 }}
-          transition={{ duration: 0.22 }}
+          exit={{ opacity: 0.9 }}
+          transition={{ duration: 0.2 }}
           draggable={false}
         />
       </AnimatePresence>
-
-      {!photoOnly && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[18%] bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-      )}
 
       {slides.length > 1 && (
         <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex gap-1 px-3">
@@ -82,91 +80,93 @@ export default function ProfilePhotoCard({
             type="button"
             aria-label="Предыдущее фото"
             onClick={prevPhoto}
-            className="absolute left-0 top-0 z-10 h-[78%] w-[38%]"
+            className="absolute left-0 top-0 z-10 h-[70%] w-[36%]"
           />
           <button
             type="button"
             aria-label="Следующее фото"
             onClick={nextPhoto}
-            className="absolute right-0 top-0 z-10 h-[78%] w-[38%]"
+            className="absolute right-0 top-0 z-10 h-[70%] w-[36%]"
           />
         </>
       )}
 
-      {showOnlineBadge && (
-        <div className="pointer-events-none absolute right-3 top-8 z-20 flex flex-col items-end gap-2">
-          {online && (
-            <span className="rounded-full bg-black/35 px-2.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
-              <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
-              Онлайн
-            </span>
-          )}
-          {isTestBotId(profile?.id) && (
-            <span className="rounded-full border border-primary/40 bg-black/35 px-2 py-0.5 text-[9px] font-bold text-primary backdrop-blur-md">
-              TEST BOT
-            </span>
-          )}
+      {showOnlineBadge && online && (
+        <div className="pointer-events-none absolute right-3 top-9 z-20">
+          <span className="rounded-full bg-black/40 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
+            <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+            Онлайн
+          </span>
         </div>
       )}
 
-      {!photoOnly && (
-      <div className={`absolute inset-x-0 bottom-0 z-20 px-4 pt-6 ${bottomPad}`}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={photoIndex}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18 }}
-            className="rounded-2xl bg-black/45 px-3 py-2.5 backdrop-blur-md"
-          >
-            {showName && (
-              <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <h3 className="text-lg font-bold leading-tight text-white">
-                  {profile.name}
-                  {profile.age != null && (
-                    <span className="font-semibold text-white/85">, {profile.age}</span>
+      {showOnlineBadge && isSelfMirrorProfileId(profile?.id) && (
+        <div className="pointer-events-none absolute left-3 top-9 z-20">
+          <span className="rounded-full bg-black/40 px-2 py-0.5 text-[9px] font-bold text-primary/90">
+            🔁 ТЫ
+          </span>
+        </div>
+      )}
+
+      {showOnlineBadge && isTestBotId(profile?.id) && (
+        <div className="pointer-events-none absolute left-3 top-9 z-20">
+          <span className="rounded-full bg-black/40 px-2 py-0.5 text-[9px] font-bold text-primary/90">
+            TEST
+          </span>
+        </div>
+      )}
+
+      {mosdate && (
+        <div className={textContentClass}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={photoIndex}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {showName && (
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="text-[1.35rem] font-bold leading-tight text-white drop-shadow-md">
+                    {profile.name}
+                    {profile.age != null && `, ${profile.age}`}
+                  </h3>
+                  {profile.is_verified && (
+                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">
+                      ✓
+                    </span>
                   )}
-                </h3>
-                {profile.is_verified && (
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">
-                    ✓
-                  </span>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {visibleTags.length > 0 && (
-              <div className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none">
-                {visibleTags.map((tag, i) => (
-                  <span
-                    key={`${tag.label}-${i}`}
-                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium text-black/80"
-                  >
-                    <span className="text-[11px]">{tag.emoji}</span>
-                    <span>{tag.label}</span>
-                  </span>
-                ))}
-                {hiddenTagCount > 0 && (
-                  <span className="inline-flex shrink-0 items-center rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-medium text-black/65">
-                    +{hiddenTagCount}
-                  </span>
-                )}
-              </div>
-            )}
+              {(tags.length > 0 || moreCount > 0) && (
+                <div className="mb-1.5 flex flex-wrap gap-1.5">
+                  {tags.map((tag, i) => (
+                    <span
+                      key={`${tag.label}-${i}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-black/85"
+                    >
+                      <span>{tag.emoji}</span>
+                      <span>{tag.label}</span>
+                    </span>
+                  ))}
+                  {moreCount > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-white/85 px-2 py-1 text-[11px] font-medium text-black/70">
+                      +{moreCount}
+                    </span>
+                  )}
+                </div>
+              )}
 
-            {slide?.text && (
-              <p className="mt-1.5 text-xs leading-snug text-white/85 line-clamp-2">
-                {slide.text}
-              </p>
-            )}
-
-            {slide?.hint && !slide?.text && (
-              <p className="mt-1 text-[10px] font-medium text-white/55">{slide.hint}</p>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+              {slide?.text && (
+                <p className="text-[13px] leading-snug text-white/90 line-clamp-1 drop-shadow-sm">
+                  {slide.text}
+                </p>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       )}
 
       {children}

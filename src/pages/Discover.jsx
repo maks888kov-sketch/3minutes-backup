@@ -6,7 +6,6 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentProfile, useDiscoverProfiles, useOnlineCount } from '@/lib/useProfile';
 import { showNotification } from '@/components/AppNotifications';
 import SwipeCard from '@/components/SwipeCard';
-import DiscoverCardCaption from '@/components/discover/DiscoverCardCaption';
 import MatchPopup from '@/components/MatchPopup';
 import DailyPicks from '@/components/DailyPicks';
 import DiscoverFiltersSheet from '@/components/discover/DiscoverFiltersSheet';
@@ -14,6 +13,11 @@ import DiscoverSkeleton from '@/components/DiscoverSkeleton';
 import { countActiveFilters, getFilterSummary } from '@/lib/discoverFilters';
 import { isTestBotId, isTestBotsEnabled, TEST_BOT_PROFILES } from '@/lib/testBots';
 import { recordTestBotSwipe, resetTestBotState } from '@/lib/testBotStore';
+import {
+  isSelfMirrorProfileId,
+  recordSelfMirrorSwipe,
+  resetSelfMirrorState,
+} from '@/lib/selfMirrorStore';
 import { Heart, X, Star, Sparkles, Flame, RefreshCw, SlidersHorizontal } from 'lucide-react';
 export default function Discover() {
   const { data: profile, isLoading: profileLoading } = useCurrentProfile();
@@ -22,7 +26,6 @@ export default function Discover() {
   const poolSize = discoverData?.poolSize ?? 0;
   const { data: onlineCount = 0 } = useOnlineCount();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [captionPhotoIndex, setCaptionPhotoIndex] = useState(0);
   const [matchPopup, setMatchPopup] = useState(null);
   const [showDailyPicks, setShowDailyPicks] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -48,10 +51,6 @@ export default function Discover() {
     }
   }, [profiles.length, currentIndex]);
 
-  useEffect(() => {
-    setCaptionPhotoIndex(0);
-  }, [profiles[currentIndex]?.id]);
-
   const handleRefresh = useCallback(async () => {
     setPullRefreshing(true);
     await refetch();
@@ -72,6 +71,31 @@ export default function Discover() {
 
     const isLike = direction === 'right' || direction === 'super';
     const isSuperLike = direction === 'super' || options.superLike;
+
+    if (isSelfMirrorProfileId(targetProfile.id)) {
+      const result = recordSelfMirrorSwipe(profile.id, direction, { superLike: isSuperLike });
+
+      if (result.matched && result.match) {
+        setMatchPopup({ match: result.match, otherProfile: profile });
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
+        queryClient.invalidateQueries({ queryKey: ['chatList'] });
+      } else if (isLike) {
+        showNotification({
+          type: 'info',
+          title: 'Лайк отправлен',
+          body: 'Чат с собой появится в «Сообщениях»',
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['discover'] });
+
+      if (options.targetProfile) {
+        setCurrentIndex((prev) => Math.max(prev, profiles.findIndex((p) => p.id === targetProfile.id) + 1));
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
+      return;
+    }
 
     if (isTestBotId(targetProfile.id)) {
       const result = recordTestBotSwipe(profile.id, targetProfile.id, direction, { superLike: isSuperLike });
@@ -149,7 +173,7 @@ export default function Discover() {
 
   if (profileLoading || isLoading) {
     return (
-      <div className="flex h-full flex-col overflow-hidden safe-top relative">
+      <div className="discover-page safe-top relative">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[150px]" />
         </div>
@@ -159,7 +183,7 @@ export default function Discover() {
             <h1 className="text-xl font-bold gradient-text">3Minutes</h1>
           </div>
         </div>
-        <div className="discover-feed-zone relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[5.25rem]">
+        <div className="discover-feed-zone">
           <div className="discover-card-frame">
             <div className="absolute inset-0">
               <DiscoverSkeleton />
@@ -171,27 +195,27 @@ export default function Discover() {
   }
 
   const remaining = profiles.slice(currentIndex);
-  const topProfile = remaining[0];
   const testBotsInFeed = remaining.filter((p) => isTestBotId(p.id)).length;
   const testBotsMatchBackCount = TEST_BOT_PROFILES.filter((b) => b.willMatchBack).length;
 
   const handleResetTestBots = () => {
     if (!profile?.id) return;
     resetTestBotState(profile.id);
+    resetSelfMirrorState(profile.id);
     setCurrentIndex(0);
     queryClient.invalidateQueries({ queryKey: ['discover'] });
     queryClient.invalidateQueries({ queryKey: ['matches'] });
     queryClient.invalidateQueries({ queryKey: ['chatList'] });
     showNotification({
       type: 'info',
-      title: 'Тест-боты сброшены',
-      body: 'Можно снова листать и проверять матчи',
+      title: 'Тест сброшен',
+      body: 'Можно снова увидеть себя в ленте и проверить матч',
     });
   };
 
   return (
     <div
-      className="flex h-full flex-col overflow-hidden safe-top relative"
+      className="discover-page safe-top relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -215,8 +239,9 @@ export default function Discover() {
         )}
       </AnimatePresence>
 
+      <div className="top-filters-panel">
       {/* Header */}
-      <div className="relative z-20 flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-5 sm:py-3">
+      <div className="relative flex flex-shrink-0 flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-5 sm:py-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
           <h1 className="text-lg font-bold gradient-text sm:text-xl">3Minutes</h1>
@@ -251,7 +276,7 @@ export default function Discover() {
       </div>
 
       {activeFilters > 0 && (
-        <div className="relative z-20 mb-1 flex-shrink-0 px-5">
+        <div className="relative mb-1 flex-shrink-0 px-5">
           <button
             onClick={() => setShowFilters(true)}
             className="text-xs text-muted-foreground glass rounded-full px-3 py-1.5 hover:text-foreground transition-colors"
@@ -262,7 +287,7 @@ export default function Discover() {
       )}
 
       {isTestBotsEnabled() && (
-        <div className="relative z-20 mb-1 flex-shrink-0 px-5">
+        <div className="relative mb-2 flex-shrink-0 px-5">
           <div className="flex items-center justify-between gap-2 rounded-full px-3 py-1.5 text-[10px] glass">
             <span className="text-muted-foreground truncate">
               🤖 Тест-боты · {testBotsInFeed > 0 ? `${testBotsInFeed} в ленте` : 'включены'}
@@ -277,9 +302,10 @@ export default function Discover() {
           </div>
         </div>
       )}
+      </div>
 
       {/* Cards */}
-      <div className="discover-feed-zone relative flex min-h-0 flex-1 flex-col items-center justify-center px-2 pb-[5.25rem]">
+      <div className="discover-feed-zone">
         {remaining.length === 0 ? (
           <div className="flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
             <motion.div
@@ -363,51 +389,45 @@ export default function Discover() {
             </div>
           </div>
         ) : (
-          <div className="flex w-full max-w-md min-h-0 flex-1 flex-col items-center justify-center gap-2">
-            <div className="discover-card-frame relative w-full shrink-0">
-              <motion.div
-                className="absolute inset-0 z-10"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-              >
-                {remaining.slice(0, 3).reverse().map((p, i, arr) => (
-                  <SwipeCard
-                    key={p.id}
-                    profile={p}
-                    isTop={i === arr.length - 1}
-                    onSwipe={handleSwipe}
-                    infoPlacement="photo-only"
-                    photoIndex={i === arr.length - 1 ? captionPhotoIndex : 0}
-                    onPhotoIndexChange={i === arr.length - 1 ? setCaptionPhotoIndex : undefined}
-                  />
-                ))}
-              </motion.div>
-            </div>
+          <div className="discover-card-frame user-card relative w-full shrink-0">
+            <motion.div
+              className="absolute inset-0 z-10"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
+              {remaining.slice(0, 3).reverse().map((p, i, arr) => (
+                <SwipeCard
+                  key={p.id}
+                  profile={p}
+                  isTop={i === arr.length - 1}
+                  onSwipe={handleSwipe}
+                  infoPlacement="mosdate"
+                />
+              ))}
+            </motion.div>
 
-            <DiscoverCardCaption profile={topProfile} photoIndex={captionPhotoIndex} />
-
-            <div className="flex w-full items-center justify-center gap-4 px-4 py-1">
+            <div className="discover-card-actions pointer-events-none absolute left-0 right-0 z-30 flex items-center justify-center gap-3 px-4">
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('left')}
-                className="flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-[#3a3a3a]/90 shadow-lg"
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#4a4a4a] shadow-lg"
               >
-                <X className="h-6 w-6 text-white" strokeWidth={2.5} />
+                <X className="h-7 w-7 text-white" strokeWidth={2.5} />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('super')}
-                className="flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-[#c9a87c] shadow-lg"
+                className="discover-star-button star-button pointer-events-auto flex h-[3.75rem] w-[4.25rem] items-center justify-center rounded-full shadow-lg"
               >
-                <Star className="h-6 w-6 text-white" fill="white" />
+                <Star className="h-6 w-6 text-[#121212]" fill="#121212" />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={() => handleSwipe('right')}
-                className="flex h-[3.25rem] w-[4.5rem] items-center justify-center rounded-full bg-white shadow-lg"
+                className="pointer-events-auto flex h-[3.75rem] w-[4.25rem] items-center justify-center rounded-full bg-white shadow-lg"
               >
-                <Heart className="h-6 w-6 text-black" fill="black" />
+                <Heart className="h-7 w-7 text-black" fill="black" />
               </motion.button>
             </div>
           </div>

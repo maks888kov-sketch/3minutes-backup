@@ -3,10 +3,16 @@ import { base44 } from '@/api/base44Client';
 import { addLocalBlock } from '@/lib/moderation';
 import { isTestBotMatchId } from '@/lib/testBots';
 import { removeTestBotMatch } from '@/lib/testBotStore';
+import { isSelfMirrorMatchId, removeSelfMirrorMatch } from '@/lib/selfMirrorStore';
 import { getOtherProfileId } from '@/lib/profileUtils';
 
 export async function hideChat(profileId, match) {
   if (!profileId || !match?.id) return;
+
+  if (isSelfMirrorMatchId(match.id)) {
+    removeSelfMirrorMatch(profileId);
+    return;
+  }
 
   if (isTestBotMatchId(match.id)) {
     removeTestBotMatch(profileId, match.id);
@@ -23,7 +29,7 @@ export async function blockChatAndHide(profileId, match) {
   if (!profileId || !match?.id) return;
 
   const otherId = getOtherProfileId(match, profileId);
-  if (otherId) {
+  if (otherId && otherId !== profileId) {
     addLocalBlock(profileId, otherId);
   }
 

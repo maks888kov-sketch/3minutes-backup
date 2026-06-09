@@ -47,7 +47,12 @@ export default function Login() {
     setSubmitting(true);
     try {
       await loginWithEmailPassword(email.trim(), password);
-      await redirectAfterAuth();
+      const from = location.state?.from;
+      if (typeof from === 'string' && from.startsWith('/') && !from.startsWith('//')) {
+        window.location.replace(from);
+      } else {
+        await redirectAfterAuth();
+      }
     } catch (err) {
       if (isEmailVerificationError(err)) {
         savePendingAuth(email.trim(), password);

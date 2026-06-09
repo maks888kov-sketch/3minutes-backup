@@ -21,9 +21,12 @@ import { getMergedBlockedIds } from '@/lib/moderation';
 import { useModerationActions } from '@/lib/useModeration';
 import { useQuery } from '@tanstack/react-query';
 import { getTestBotProfile, isTestBotId } from '@/lib/testBots';
+import { APP_BUILD_ID } from '@/lib/appBuild';
+import { checkForAppUpdate, hardReloadApp } from '@/lib/appUpdate';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const [updatingApp, setUpdatingApp] = useState(false);
   const { data: profile, isLoading } = useCurrentProfile();
   const updateProfile = useUpdateProfile();
   const {
@@ -165,7 +168,7 @@ export default function Settings() {
   const photo = photoPreview || profile?.photos?.[0] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop';
 
   return (
-    <div className="h-full overflow-y-auto pb-28 safe-top relative">
+    <div className="h-full overflow-y-auto pb-4 safe-top relative">
       {/* bg glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full opacity-5"
@@ -377,6 +380,41 @@ export default function Settings() {
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          disabled={updatingApp}
+          onClick={async () => {
+            setUpdatingApp(true);
+            try {
+              const result = await checkForAppUpdate();
+              if (result.updateAvailable) {
+                showNotification({
+                  type: 'info',
+                  title: 'Есть обновление',
+                  body: 'Сейчас перезагрузим — удалять ярлык с экрана не нужно',
+                });
+              }
+              await hardReloadApp();
+            } catch {
+              showNotification({
+                type: 'error',
+                title: 'Не удалось обновить',
+                body: 'Закрой приложение полностью и открой снова',
+              });
+              setUpdatingApp(false);
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 mb-1 glass rounded-2xl text-sm text-primary"
+        >
+          <Loader2 className={`w-4 h-4 ${updatingApp ? 'animate-spin' : ''}`} />
+          {updatingApp ? 'Обновляем…' : 'Обновить приложение'}
+        </button>
+
+        <p className="text-center text-[10px] text-muted-foreground/60 pb-2">
+          Сборка: {APP_BUILD_ID}
+          {import.meta.env.DEV ? ' · локально' : ' · base44'}
+        </p>
 
         {/* Logout */}
         <button

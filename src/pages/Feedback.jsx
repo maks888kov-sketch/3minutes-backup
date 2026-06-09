@@ -115,7 +115,7 @@ export default function Feedback() {
   const emptyState = emptyMessages[filter] || emptyMessages.all;
 
   return (
-    <div className="h-full overflow-y-auto pb-24 safe-top relative">
+    <div className="h-full overflow-y-auto pb-4 safe-top relative">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] rounded-full bg-primary/5 blur-[100px]" />
       </div>

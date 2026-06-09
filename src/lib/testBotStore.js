@@ -203,7 +203,7 @@ export function blockTestBotMatch(matchId) {
   return patchTestBotMatch(ctx.profileId, matchId, { status: 'blocked' });
 }
 
-export function setTestBotVideoConsent(matchId) {
+export function setTestBotVideoConsent(matchId, profileId) {
   const ctx = findMatchContext(matchId);
   if (!ctx) return null;
   return patchTestBotMatch(ctx.profileId, matchId, {

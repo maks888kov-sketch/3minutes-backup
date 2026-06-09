@@ -25,7 +25,7 @@ export default function AddToHomeScreenHint() {
   if (!visible) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-[5.5rem] left-0 right-0 z-[55] px-3">
+    <div className="pointer-events-none absolute bottom-full left-0 right-0 z-[45] mb-2 px-3">
       <div className="pointer-events-auto mx-auto max-w-lg rounded-2xl border border-primary/30 bg-[#1a1228] px-4 py-3 shadow-xl">
         <div className="flex items-start gap-3">
           <Smartphone className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />

@@ -6,6 +6,7 @@ import { MessageCircle, Search, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCurrentProfile, useChatList, useMatches, useHideChat } from '@/lib/useProfile';
 import { getMergedBlockedIds } from '@/lib/moderation';
+import { needsMyVideoConsent } from '@/lib/chatMatchUtils';
 import ChatListItem from '@/components/chat/ChatListItem';
 import { showNotification } from '@/components/AppNotifications';
 
@@ -60,14 +61,14 @@ export default function Chats() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center pb-28">
+      <div className="flex h-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto pb-28 safe-top">
+    <div className="h-full overflow-y-auto pb-4 safe-top">
       <div className="px-5 pt-5 pb-3">
         <h1 className="text-2xl font-bold">Чаты</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">Зажмите чат — удалить или заблокировать</p>
@@ -156,6 +157,7 @@ export default function Chats() {
               unread={chat.unread}
               lastMessage={chat.lastMessage}
               lastTime={chat.lastTime}
+              videoRequestPending={needsMyVideoConsent(chat.match, profile?.id)}
               isBusy={hideChatMutation.isPending}
               onDelete={() => handleDelete(chat.match)}
               onBlock={() => handleBlock(chat.match)}

@@ -14,6 +14,8 @@ const ICONS = {
   message: { icon: MessageCircle, color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
   video_request: { icon: Video, color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
   video_ready: { icon: Video, color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
+  info: { icon: MessageCircle, color: '#93c5fd', bg: 'rgba(147,197,253,0.12)' },
+  error: { icon: X, color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
 };
 
 export default function AppNotifications() {
@@ -45,7 +47,18 @@ export default function AppNotifications() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="w-full max-w-sm pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl"
+              role={toast.onClick ? 'button' : undefined}
+              tabIndex={toast.onClick ? 0 : undefined}
+              onClick={() => toast.onClick?.()}
+              onKeyDown={(e) => {
+                if (toast.onClick && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  toast.onClick();
+                }
+              }}
+              className={`w-full max-w-sm pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl ${
+                toast.onClick ? 'cursor-pointer hover:border-white/20' : ''
+              }`}
               style={{
                 background: 'hsl(250,15%,12%)',
                 border: '1px solid rgba(255,255,255,0.1)',

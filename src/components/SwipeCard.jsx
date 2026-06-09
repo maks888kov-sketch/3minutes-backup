@@ -9,7 +9,7 @@ export default function SwipeCard({
   isTop,
   photoIndex: controlledPhotoIndex,
   onPhotoIndexChange,
-  infoPlacement = 'overlay',
+  infoPlacement = 'mosdate',
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-12, 12]);
@@ -57,7 +57,7 @@ export default function SwipeCard({
           onPhotoIndexChange={setPhotoIndex}
           enablePhotoNav={isTop}
           infoPlacement={infoPlacement}
-          extraBottomPadding={infoPlacement !== 'photo-only'}
+          extraBottomPadding
         >
           <motion.div
             style={{ opacity: likeOpacity }}

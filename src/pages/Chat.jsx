@@ -17,6 +17,14 @@ import {
   sendTestBotMediaMessage,
 } from '@/lib/testBotStore';
 import {
+  isSelfMirrorMatchId,
+  getSelfMirrorMatch,
+  sendSelfMirrorMessage,
+  sendSelfMirrorMediaMessage,
+  markSelfMirrorMatchRead,
+  setSelfMirrorVideoConsent,
+} from '@/lib/selfMirrorStore';
+import {
   isMediaUnlocked,
   isVideoReady,
   getVideoConsent,
@@ -76,20 +84,27 @@ export default function Chat() {
   const moderationBusy = blockUser.isPending || submitReport.isPending;
 
   const isTestChat = isTestBotMatchId(matchId);
+  const isSelfMirrorChat = isSelfMirrorMatchId(matchId);
+  const isLocalChat = isTestChat || isSelfMirrorChat;
 
   const { data: match, isLoading: matchLoading } = useQuery({
     queryKey: ['match', matchId],
     queryFn: async () => {
+      if (isSelfMirrorMatchId(matchId)) return getSelfMirrorMatch(matchId);
       if (isTestBotMatchId(matchId)) return getTestBotMatch(matchId);
       const matches = await base44.entities.Match.filter({ id: matchId });
       return matches[0] || null;
     },
     enabled: !!matchId,
-    refetchInterval: isTestChat ? 1000 : 3000,
+    refetchInterval: isLocalChat ? 1000 : 3000,
   });
 
   useEffect(() => {
     if (!match || !myProfile) return;
+    if (isSelfMirrorMatchId(match.id)) {
+      setOtherProfile(myProfile);
+      return;
+    }
     if (isTestBotMatchId(match.id)) {
       setOtherProfile(resolveTestBotOtherProfile(match, myProfile.id));
       return;
@@ -108,6 +123,13 @@ export default function Chat() {
 
     unreadClearedRef.current = true;
 
+    if (isSelfMirrorMatchId(match.id)) {
+      markSelfMirrorMatchRead(match.id);
+      queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['chatList'] });
+      return;
+    }
     if (isTestBotMatchId(match.id)) {
       markTestBotMatchRead(match.id, myProfile.id);
       queryClient.invalidateQueries({ queryKey: ['match', matchId] });
@@ -250,7 +272,7 @@ export default function Chat() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !myProfile) return;
-    if (!isTestChat && !match) return;
+    if (!isLocalChat && !match) return;
 
     if (!mediaUnlocked) {
       notifyMediaLocked();
@@ -258,6 +280,13 @@ export default function Chat() {
     }
 
     try {
+      if (isSelfMirrorChat) {
+        const dataUrl = await fileToDataUrl(file);
+        sendSelfMirrorMediaMessage(matchId, myProfile.id, 'photo', dataUrl);
+        invalidateChat();
+        return;
+      }
+
       if (isTestChat) {
         const dataUrl = await fileToDataUrl(file);
         sendTestBotMediaMessage(matchId, myProfile.id, 'photo', dataUrl);
@@ -378,6 +407,13 @@ export default function Chat() {
         if (blob.size < 500) return;
 
         try {
+          if (isSelfMirrorChat) {
+            const dataUrl = await fileToDataUrl(blob);
+            sendSelfMirrorMediaMessage(matchId, myProfile.id, 'voice', dataUrl);
+            invalidateChat();
+            return;
+          }
+
           if (isTestChat) {
             const dataUrl = await fileToDataUrl(blob);
             sendTestBotMediaMessage(matchId, myProfile.id, 'voice', dataUrl);
@@ -422,17 +458,37 @@ export default function Chat() {
 
   const handleVideoRequest = async () => {
     if (!myProfile) return;
-    if (!isTestChat && !match) return;
+    if (!isLocalChat && !match) return;
 
     try {
-      if (isTestChat) {
-        setTestBotVideoConsent(matchId);
+      if (isSelfMirrorChat) {
+        setSelfMirrorVideoConsent(matchId);
         invalidateChat();
         showNotification({
           type: 'video_ready',
           title: 'Видео-встреча доступна!',
-          body: `${otherProfile?.name || 'Собеседник'} согласилась — можно звонить`,
+          body: 'Тестовый чат с собой — можно звонить',
         });
+        return;
+      }
+
+      if (isTestChat) {
+        setTestBotVideoConsent(matchId, myProfile.id);
+        invalidateChat();
+        const updated = getTestBotMatch(matchId);
+        if (updated?.video_consent_a && updated?.video_consent_b) {
+          showNotification({
+            type: 'video_ready',
+            title: 'Видео-встреча доступна!',
+            body: 'Оба согласились — можно звонить',
+          });
+        } else {
+          showNotification({
+            type: 'video_request',
+            title: 'Запрос видео-встречи отправлен',
+            body: 'Ждём согласия собеседника',
+          });
+        }
         return;
       }
 
@@ -440,6 +496,8 @@ export default function Chat() {
       await base44.entities.Match.update(match.id, {
         [isA ? 'video_consent_a' : 'video_consent_b']: true,
       });
+      queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
       await base44.entities.Message.create({
         match_id: matchId,
         sender_profile_id: myProfile.id,
@@ -471,7 +529,7 @@ export default function Chat() {
 
   const otherOnline = isProfileOnline(otherProfile);
   const otherPhoto = otherProfile?.photos?.[0] || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop';
-  const chatReady = !!myProfile && (!!match || isTestChat);
+  const chatReady = !!myProfile && (!!match || isLocalChat);
   const isBlocked = isProfileBlocked(myProfile, otherProfile?.id);
 
   const handleBlockOnly = async () => {
@@ -592,6 +650,15 @@ export default function Chat() {
           <Button onClick={() => navigate('/chats')} variant="ghost" className="rounded-xl glass">
             Вернуться к чатам
           </Button>
+        </div>
+      )}
+
+      {isSelfMirrorChat && (
+        <div className="mx-4 mt-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center">
+          <p className="text-sm font-medium text-amber-200">🔁 Это тест «чат с собой»</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Звонок с другом — открой чат с его именем в «Сообщениях» (не self-match)
+          </p>
         </div>
       )}
 

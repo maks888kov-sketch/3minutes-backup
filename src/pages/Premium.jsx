@@ -54,7 +54,7 @@ export default function Premium() {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-background text-foreground pb-28">
+    <div className="h-full overflow-y-auto bg-background text-foreground pb-4">
 
       {/* Background glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">

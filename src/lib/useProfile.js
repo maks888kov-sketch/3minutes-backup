@@ -12,7 +12,15 @@ import {
   getTestBotMessages,
   isTestBotMatchId,
 } from '@/lib/testBotStore';
+import {
+  getSelfMirrorDiscoverProfile,
+  getSelfMirrorMatches,
+  getSelfMirrorMessages,
+  isSelfMirrorMatchId,
+} from '@/lib/selfMirrorStore';
 import { blockChatAndHide, hideChat } from '@/lib/chatActions';
+import { sortMatchesForUi } from '@/lib/matchListSort';
+import { isWebRtcSignalMessage } from '@/lib/webrtcCall';
 
 export function useCurrentProfile() {
   return useQuery({
@@ -107,9 +115,12 @@ export function useDiscoverProfiles(currentProfile) {
             return (isProfileOnline(b) ? 1 : 0) - (isProfileOnline(a) ? 1 : 0);
           });
 
+        const selfMirror = getSelfMirrorDiscoverProfile(currentProfile);
+        const feed = selfMirror ? [selfMirror, ...profiles, ...testBots] : [...profiles, ...testBots];
+
         return {
-          profiles: [...profiles, ...testBots],
-          poolSize: pool.length + (isTestBotsEnabled() ? TEST_BOT_PROFILES.length : 0),
+          profiles: feed,
+          poolSize: pool.length + (isTestBotsEnabled() ? TEST_BOT_PROFILES.length : 0) + (selfMirror ? 1 : 0),
         };
       } catch {
         return {
@@ -141,30 +152,33 @@ export function useMatches(profileId, blockedIds = []) {
         const otherId = getOtherProfileId(m, profileId);
         return !blockedSet.has(otherId);
       }) : [];
-      return [...test, ...real].sort(
-        (a, b) =>
-          new Date(b.last_message_time || b.created_date) -
-          new Date(a.last_message_time || a.created_date)
-      );
+      const selfMatches = profileId ? getSelfMirrorMatches(profileId) : [];
+      return sortMatchesForUi([...real, ...test, ...selfMatches]);
     },
     enabled: !!profileId,
+    refetchInterval: 4000,
+    refetchIntervalInBackground: false,
   });
 }
 
 export function useMessages(matchId) {
-  const isTest = isTestBotMatchId(matchId);
+  const isLocal = isTestBotMatchId(matchId) || isSelfMirrorMatchId(matchId);
 
   return useQuery({
     queryKey: ['messages', matchId],
     queryFn: async () => {
       if (!matchId) return [];
+      if (isSelfMirrorMatchId(matchId)) {
+        return getSelfMirrorMessages(matchId);
+      }
       if (isTestBotMatchId(matchId)) {
         return getTestBotMessages(matchId);
       }
-      return base44.entities.Message.filter({ match_id: matchId }, 'created_date', 100);
+      const rows = await base44.entities.Message.filter({ match_id: matchId }, 'created_date', 100);
+      return rows.filter((m) => !isWebRtcSignalMessage(m));
     },
     enabled: !!matchId,
-    refetchInterval: isTest ? 1000 : 1500,
+    refetchInterval: isLocal ? 1000 : 1500,
   });
 }
 
@@ -190,18 +204,15 @@ export function useChatList(profileId, blockedIds = []) {
       const matchesA = await base44.entities.Match.filter({ profile_a_id: profileId });
       const matchesB = await base44.entities.Match.filter({ profile_b_id: profileId });
       const test = profileId ? getTestBotMatches(profileId) : [];
+      const selfMatches = profileId ? getSelfMirrorMatches(profileId) : [];
       const isActiveMatch = (m) => m.status !== 'ended' && m.status !== 'blocked';
 
-      const matches = [...test, ...matchesA, ...matchesB]
-        .filter((m) => {
+      const matches = sortMatchesForUi(
+        [...matchesA, ...matchesB, ...test, ...selfMatches].filter((m) => {
           const otherId = getOtherProfileId(m, profileId);
           return isActiveMatch(m) && !blockedSet.has(otherId);
-        })
-        .sort(
-          (a, b) =>
-            new Date(b.last_message_time || b.created_date) -
-            new Date(a.last_message_time || a.created_date)
-        );
+        }),
+      );
 
       if (!matches.length) return [];
 
@@ -210,6 +221,10 @@ export function useChatList(profileId, blockedIds = []) {
         otherIds.map(async (id) => {
           if (isTestBotId(id)) {
             return [id, getTestBotProfile(id)];
+          }
+          if (id === profileId) {
+            const me = await base44.entities.Profile.filter({ id: profileId });
+            return [id, me[0]];
           }
           return base44.entities.Profile.filter({ id }).then((ps) => [id, ps[0]]);
         })

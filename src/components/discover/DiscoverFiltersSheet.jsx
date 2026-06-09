@@ -63,7 +63,7 @@ export default function DiscoverFiltersSheet({ profile, onClose }) {
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="absolute inset-x-0 bottom-[5.25rem] mx-auto flex w-full max-w-lg flex-col glass-strong rounded-t-3xl max-h-[min(78vh,calc(100dvh-5.5rem))] safe-bottom"
+        className="absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-lg flex-col glass-strong rounded-t-3xl max-h-[min(85dvh,calc(100dvh-env(safe-area-inset-bottom)))] safe-bottom"
       >
         <div className="flex-shrink-0 px-6 pt-6 pb-3">
           <div className="flex items-center justify-between mb-2">

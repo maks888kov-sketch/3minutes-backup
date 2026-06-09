@@ -7,7 +7,8 @@ import { useCurrentProfile, useMatches, useLikedMe, useLikedMeProfiles } from '@
 import { isProfileOnline } from '@/lib/profileUtils';
 import { getTestBotProfile, isTestBotId } from '@/lib/testBots';
 import { getMergedBlockedIds } from '@/lib/moderation';
-import { Heart, MessageCircle, Crown, Loader2, Sparkles, Star } from 'lucide-react';
+import { Heart, MessageCircle, Crown, Sparkles, Star } from 'lucide-react';
+import PageLoader from '@/components/PageLoader';
 import { Button } from '@/components/ui/button';
 
 export default function Matches() {
@@ -30,6 +31,9 @@ export default function Matches() {
         if (isTestBotId(id)) {
           return Promise.resolve([id, getTestBotProfile(id)]);
         }
+        if (id === profile.id) {
+          return Promise.resolve([id, profile]);
+        }
         return base44.entities.Profile.filter({ id }).then((ps) => [id, ps[0]]);
       })
     ).then((pairs) => {
@@ -40,18 +44,14 @@ export default function Matches() {
   }, [matches, profile]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoader className="h-full" />;
   }
 
   const empty = matches.length === 0 && likedMe.length === 0;
   const hasLikesOnly = matches.length === 0 && likedMe.length > 0;
 
   return (
-    <div className="h-full overflow-y-auto pb-24 safe-top">
+    <div className="h-full overflow-y-auto pb-4 safe-top">
       <div className="px-5 pt-5 pb-2">
         <h1 className="text-2xl font-bold">Пары</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Взаимные симпатии</p>
